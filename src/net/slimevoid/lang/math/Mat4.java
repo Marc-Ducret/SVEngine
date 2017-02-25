@@ -8,6 +8,8 @@ import net.slimevoid.lang.Stack;
 
 public class Mat4 {
 	
+	private static final Mat4 TMP_MAT = new Mat4();
+	
 	public float m[];
 	private Stack<Mat4> backupStack;
 	
@@ -17,7 +19,7 @@ public class Mat4 {
 	}
 	
 	public void push() {
-		backupStack.push(this.copy());
+		backupStack.push(this.copy()); //TODO rework to avoid allocation (pool of matrices??)
 	}
 	
 	public void pop() {
@@ -54,28 +56,36 @@ public class Mat4 {
 		return this;
 	}
 	
-	public Mat4 setTranslate(Vec3 v) {
+	public Mat4 setTranslate(float x, float y, float z) {
 		loadIdentity();
-		m[3 * 4 + 0] = v.x;
-		m[3 * 4 + 1] = v.y;
-		m[3 * 4 + 2] = v.z;
+		m[3 * 4 + 0] = x;
+		m[3 * 4 + 1] = y;
+		m[3 * 4 + 2] = z;
+		return this;
+	}
+	
+	public Mat4 setTranslate(Vec3 v) {
+		return setTranslate(v.x, v.y, v.z);
+	}
+	
+	public Mat4 setRotate(float angle, float axisX, float axisY, float axisZ) {
+		loadIdentity();
+		float cosA = (float) cos(angle);
+		float sinA = (float) sin(angle);
+		m[0 * 4 + 0] = cosA + axisX * axisX * (1 - cosA);
+		m[1 * 4 + 0] = axisX * axisY * (1 - cosA) - axisZ * sinA;
+		m[2 * 4 + 0] = axisX * axisZ * (1 - cosA) + axisY * sinA;
+		m[0 * 4 + 1] = axisY * axisX * (1 - cosA) + axisZ * sinA;
+		m[1 * 4 + 1] = cosA + axisY * axisY * (1 - cosA);
+		m[2 * 4 + 1] = axisY * axisZ * (1 - cosA) - axisX * sinA;
+		m[0 * 4 + 2] = axisZ * axisX * (1 - cosA) - axisY * sinA;
+		m[1 * 4 + 2] = axisZ * axisY * (1 - cosA) + axisX * sinA;
+		m[2 * 4 + 2] = cosA + axisZ * axisZ * (1 - cosA);
 		return this;
 	}
 	
 	public Mat4 setRotate(float angle, Vec3 axis) {
-		loadIdentity();
-		float cosA = (float) cos(angle);
-		float sinA = (float) sin(angle);
-		m[0 * 4 + 0] = cosA + axis.x * axis.x * (1 - cosA);
-		m[1 * 4 + 0] = axis.x * axis.y * (1 - cosA) - axis.z * sinA;
-		m[2 * 4 + 0] = axis.x * axis.z * (1 - cosA) + axis.y * sinA;
-		m[0 * 4 + 1] = axis.y * axis.x * (1 - cosA) + axis.z * sinA;
-		m[1 * 4 + 1] = cosA + axis.y * axis.y * (1 - cosA);
-		m[2 * 4 + 1] = axis.y * axis.z * (1 - cosA) - axis.x * sinA;
-		m[0 * 4 + 2] = axis.z * axis.x * (1 - cosA) - axis.y * sinA;
-		m[1 * 4 + 2] = axis.z * axis.y * (1 - cosA) + axis.x * sinA;
-		m[2 * 4 + 2] = cosA + axis.z * axis.z * (1 - cosA);
-		return this;
+		return setRotate(angle, axis.x, axis.y, axis.z);
 	}
 	
 	public Mat4 setScale(Vec3 v) {
@@ -103,26 +113,34 @@ public class Mat4 {
 	}
 	
 	public Mat4 project(float aspect, float fov, float near, float far) {
-		return mul(new Mat4().setPerspectiveProjectection(aspect, fov, near, far));
+		return mul(TMP_MAT.setPerspectiveProjectection(aspect, fov, near, far));
+	}
+	
+	public Mat4 translate(float x, float y, float z) {
+		return mul(TMP_MAT.setTranslate(x, y, z));
 	}
 	
 	public Mat4 translate(Vec3 v) {
-		return mul(new Mat4().setTranslate(v));
+		return mul(TMP_MAT.setTranslate(v));
+	}
+	
+	public Mat4 rotate(float angle, float axisX, float axisY, float axisZ) {
+		return mul(TMP_MAT.setRotate(angle, axisX, axisY, axisZ));
 	}
 	
 	public Mat4 rotate(float angle, Vec3 axis) {
-		return mul(new Mat4().setRotate(angle, axis));
+		return mul(TMP_MAT.setRotate(angle, axis));
 	}
 	
 	public Mat4 scale(float s) {
-		return scale(new Vec3(s, s, s));
+		return scale(new Vec3(s, s, s)); //TODO without allocation
 	}
 	
 	public Mat4 scale(Vec3 v) {
-		return mul(new Mat4().setScale(v));
+		return mul(TMP_MAT.setScale(v));
 	}
 	
-	public Mat4 inverse() {
+	public Mat4 inverse() { //TODO rework to not allocate
 	    float inv[], det;
 	    int i;
 	    inv = new float[4 * 4];
@@ -252,6 +270,10 @@ public class Mat4 {
 	    return this;
 	}
 	
+	public Mat4 resetRotation() {
+		return setTranslate(m[3 * 4 + 0], m[3 * 4 + 1], m[3 * 4 + 2]);
+	}
+	
 //	public Mat4 set(Transform trans) {
 //		float[] m = new float[16];
 //		trans.getOpenGLMatrix(m);
@@ -296,7 +318,7 @@ public class Mat4 {
 //        return trans;
 //    }
 
-	public Mat4 copy() {
+	private Mat4 copy() {
 		Mat4 mat = new Mat4();
 		for(int i = 0; i < 16; i ++) {
 			mat.m[i] = this.m[i];

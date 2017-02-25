@@ -1,5 +1,6 @@
 package net.slimevoid.gl;
 
+import static java.lang.Math.PI;
 import static java.lang.Math.sin;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
@@ -112,6 +113,15 @@ public class GLInterface {
 		glfwSwapInterval(1);
 		glfwShowWindow(window);
 	}
+	
+	private static void tmp(Camera cam) {
+		cam.viewMat.loadIdentity();
+		cam.resetPos();
+		cam.translate(.5F, 1, 1);
+		cam.lookAt(0, 0, 0);
+		cam.projMat.loadIdentity();
+		cam.projMat.setPerspectiveProjectection(1, (float) PI/2.5F, .01F, 1000F);
+	}
 
 	private static void loop() {
 		GL.createCapabilities();
@@ -133,6 +143,11 @@ public class GLInterface {
 		Vec3 v = new Vec3();
 		Vec3 axis = new Vec3();
 		axis.set(0, 0, 1);
+		Camera cam = new Camera();
+		cam.setupProjection(1, (float) PI/2, .01F, 100F);
+		cam.translate(1, 1, 0);
+		cam.lookAt(0, 0, 0);
+		cam.projMat.loadIdentity();
 		//END TEST
 		
 		while ( !glfwWindowShouldClose(window) ) {
@@ -140,16 +155,21 @@ public class GLInterface {
 
 			//TEST
 			ct++;
-			v.set((float) sin(ct * .03F) * .5F, 0, 0);
-			mat.loadIdentity();
-			mat.rotate(ct*.03F, axis);
-			mat.translate(v);
 			ShaderProgram program = sm.getProgram("test"+((ct/60)%2));
 			glUseProgram(program.getId());
-			program.setMat4("mat", mat);
-			glBindVertexArray(vao);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
-			glBindVertexArray(0);
+			tmp(cam);
+			program.setMat4("projMat", cam.projMat);
+			program.setMat4("viewMat", cam.viewMat);
+			for(int i = 0; i < 4; i++) {
+				mat.loadIdentity();
+				mat.rotate(i * (float)PI/2, 1, 0, 0);
+				v.set(0, (float) sin(ct * .03F) * .1F, 0);
+				mat.translate(v);
+				program.setMat4("modelMat", mat);
+				glBindVertexArray(vao);
+				glDrawArrays(GL_TRIANGLES, 0, 3);
+				glBindVertexArray(0);
+			}
 			//END TEST
 			
 			glfwSwapBuffers(window);
