@@ -1,9 +1,9 @@
 package net.slimevoid.lang.math;
 
 import static java.lang.Math.cos;
-import static java.lang.Math.pow;
 import static java.lang.Math.sin;
 import static java.lang.Math.tan;
+
 import net.slimevoid.lang.Stack;
 
 public class Mat4 {
@@ -47,12 +47,12 @@ public class Mat4 {
 //	}
 	
 	public Mat4 setPerspectiveProjectection(float aspect, float fov, float near, float far) {
-		m[0 * 4 + 0] = (float) (1 / tan(fov / 2) / aspect);
-		m[1 * 4 + 1] = (float) (1 / tan(fov / 2));
+		float scale = (float) (1 / tan(fov / 2));
+		m[0 * 4 + 0] = scale / aspect;
+		m[1 * 4 + 1] = scale;
 		m[2 * 4 + 2] = - (far + near) / (far - near);
 		m[2 * 4 + 3] = -1;
-		m[2 * 4 + 3] = (float) -(pow(pow(2, far), near) / (far - near));
-		m[3 * 4 + 3] = 0.01F;
+		m[2 * 4 + 3] = - (far + near) / (far - near);
 		return this;
 	}
 	

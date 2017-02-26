@@ -114,15 +114,6 @@ public class GLInterface {
 		glfwShowWindow(window);
 	}
 	
-	private static void tmp(Camera cam) {
-		cam.viewMat.loadIdentity();
-		cam.resetPos();
-		cam.translate(.5F, 1, 1);
-		cam.lookAt(0, 0, 0);
-		cam.projMat.loadIdentity();
-		cam.projMat.setPerspectiveProjectection(1, (float) PI/2.5F, .01F, 1000F);
-	}
-
 	private static void loop() {
 		GL.createCapabilities();
 
@@ -144,20 +135,19 @@ public class GLInterface {
 		Vec3 axis = new Vec3();
 		axis.set(0, 0, 1);
 		Camera cam = new Camera();
-		cam.setupProjection(1, (float) PI/2, .01F, 100F);
-		cam.translate(1, 1, 0);
+		cam.setupProjection(windowWidth / (float) windowHeight, (float) PI/2.5F, .01F, 1000F);
+		cam.translate(1, 1, 1);
 		cam.lookAt(0, 0, 0);
-		cam.projMat.loadIdentity();
 		//END TEST
 		
 		while ( !glfwWindowShouldClose(window) ) {
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			//TEST
 			ct++;
 			ShaderProgram program = sm.getProgram("test"+((ct/60)%2));
 			glUseProgram(program.getId());
-			tmp(cam);
+			cam.computeMat();
 			program.setMat4("projMat", cam.projMat);
 			program.setMat4("viewMat", cam.viewMat);
 			for(int i = 0; i < 4; i++) {

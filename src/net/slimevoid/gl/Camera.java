@@ -24,7 +24,7 @@ public class Camera {
 		projMat.setPerspectiveProjectection(aspect, fov, near, far);
 	}
 	
-	private void computePos() {
+	public void computePos() {
 		pos.setNul();
 		pos.mul(viewMat);
 		pos.negate();
@@ -32,7 +32,7 @@ public class Camera {
 	
 	public void computeMat() {
 		viewMat.loadIdentity();
-		viewMat.rotate(roll, Vec3.Y);
+		viewMat.rotate(roll, Vec3.Z);
 		viewMat.rotate(pitch, Vec3.X);
 		viewMat.rotate(yaw, Vec3.Z);
 		viewMat.translate(-pos.x, -pos.y, -pos.z);
@@ -52,7 +52,8 @@ public class Camera {
 	
 	public void lookAt(float x, float y, float z) {
 		float dx = pos.x - x, dy = pos.y - y, dz = pos.z - z;
-		pitch = (float) atan2(sqrt(dx*dx + dy*dy), dz);
 		yaw = (float) (PI/2 - atan2(dy, dx));
+		pitch = (float) atan2(sqrt(dx*dx + dy*dy), dz);
+		roll = 0;
 	}
 }
