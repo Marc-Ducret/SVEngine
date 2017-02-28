@@ -1,6 +1,7 @@
 package net.slimevoid.gl;
 
 import static java.lang.Math.PI;
+import static java.lang.Math.cos;
 import static java.lang.Math.sin;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
@@ -30,10 +31,12 @@ import static org.lwjgl.glfw.GLFW.glfwWindowHint;
 import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
+import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL20.glUseProgram;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.system.MemoryStack.stackPush;
@@ -47,6 +50,9 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
 
+import net.slimevoid.gl.model.Model;
+import net.slimevoid.gl.model.ModelManager;
+import net.slimevoid.gl.model.ObjLoader;
 import net.slimevoid.gl.shader.ShaderManager;
 import net.slimevoid.gl.shader.ShaderProgram;
 import net.slimevoid.lang.math.Mat4;
@@ -122,11 +128,8 @@ public class GLInterface {
 		
 		//TEST
 		ShaderManager sm = new ShaderManager("");
-		ModelManager mm = new ModelManager();
-		int vao = mm.createVertexArray(3, 
-						-.5F, -.5F, 0F, 
-						+.5F, -.5F, 0F,
-						  0F, +.5F, 0F);
+		ModelManager mm = new ModelManager(new ObjLoader(), "");
+		Model model = mm.getModel("test");
 		
 		int ct = 0;
 		Mat4 mat = new Mat4();
@@ -135,9 +138,10 @@ public class GLInterface {
 		Vec3 axis = new Vec3();
 		axis.set(0, 0, 1);
 		Camera cam = new Camera();
-		cam.setupProjection(windowWidth / (float) windowHeight, (float) PI/2.5F, .01F, 1000F);
-		cam.translate(1, 1, 1);
+		cam.setupProjection(windowWidth / (float) windowHeight, (float) PI/2.5F, .01F, 100F);
+		cam.translate(2, 4, -2);
 		cam.lookAt(0, 0, 0);
+		glEnable(GL_DEPTH_TEST);
 		//END TEST
 		
 		while ( !glfwWindowShouldClose(window) ) {
@@ -145,21 +149,21 @@ public class GLInterface {
 
 			//TEST
 			ct++;
-			ShaderProgram program = sm.getProgram("test"+((ct/60)%2));
+			cam.resetPos();
+			cam.translate((float) sin(ct * .01F) * 3, (float) cos(ct * .01F) * 3, -2);
+			cam.lookAt(0, 0, 0);
+			ShaderProgram program = sm.getProgram("test0");
 			glUseProgram(program.getId());
 			cam.computeMat();
 			program.setMat4("projMat", cam.projMat);
 			program.setMat4("viewMat", cam.viewMat);
-			for(int i = 0; i < 4; i++) {
-				mat.loadIdentity();
-				mat.rotate(i * (float)PI/2, 1, 0, 0);
-				v.set(0, (float) sin(ct * .03F) * .1F, 0);
-				mat.translate(v);
-				program.setMat4("modelMat", mat);
-				glBindVertexArray(vao);
-				glDrawArrays(GL_TRIANGLES, 0, 3);
-				glBindVertexArray(0);
-			}
+			mat.loadIdentity();
+			v.set(0, 0, 0);
+			mat.translate(v);
+			program.setMat4("modelMat", mat);
+			glBindVertexArray(model.vao);
+			glDrawArrays(GL_TRIANGLES, 0, model.count);
+			glBindVertexArray(0);
 			//END TEST
 			
 			glfwSwapBuffers(window);

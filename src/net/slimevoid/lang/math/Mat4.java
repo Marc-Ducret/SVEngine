@@ -47,12 +47,14 @@ public class Mat4 {
 //	}
 	
 	public Mat4 setPerspectiveProjectection(float aspect, float fov, float near, float far) {
+		loadIdentity();
 		float scale = (float) (1 / tan(fov / 2));
 		m[0 * 4 + 0] = scale / aspect;
 		m[1 * 4 + 1] = scale;
-		m[2 * 4 + 2] = - (far + near) / (far - near);
+		m[2 * 4 + 2] = - far / (far - near);
 		m[2 * 4 + 3] = -1;
-		m[2 * 4 + 3] = - (far + near) / (far - near);
+		m[3 * 4 + 2] = - (far * near) / (far - near);
+		m[3 * 4 + 3] = 0;
 		return this;
 	}
 	
