@@ -32,16 +32,19 @@ import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
+import static org.lwjgl.opengl.GL11.GL_NO_ERROR;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.glEnable;
+import static org.lwjgl.opengl.GL11.glGetError;
 import static org.lwjgl.opengl.GL20.glUseProgram;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
+import java.io.IOException;
 import java.nio.IntBuffer;
 
 import org.lwjgl.Version;
@@ -129,6 +132,11 @@ public class GLInterface {
 		//TEST
 		ShaderManager sm = new ShaderManager("");
 		ModelManager mm = new ModelManager(new ObjLoader(), "");
+		try {
+			mm.initMaterials();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		Model model = mm.getModel("test");
 		
 		int ct = 0;
@@ -139,8 +147,6 @@ public class GLInterface {
 		axis.set(0, 0, 1);
 		Camera cam = new Camera();
 		cam.setupProjection(windowWidth / (float) windowHeight, (float) PI/2.5F, .01F, 100F);
-		cam.translate(2, 4, -2);
-		cam.lookAt(0, 0, 0);
 		glEnable(GL_DEPTH_TEST);
 		//END TEST
 		
@@ -150,9 +156,9 @@ public class GLInterface {
 			//TEST
 			ct++;
 			cam.resetPos();
-			cam.translate((float) sin(ct * .01F) * 3, (float) cos(ct * .01F) * 3, -2);
+			cam.translate((float) sin(ct * .01F) * 3, (float) cos(ct * .01F) * 3, 4);
 			cam.lookAt(0, 0, 0);
-			ShaderProgram program = sm.getProgram("test0");
+			ShaderProgram program = sm.getProgram("base");
 			glUseProgram(program.getId());
 			cam.computeMat();
 			program.setMat4("projMat", cam.projMat);
@@ -160,6 +166,8 @@ public class GLInterface {
 			mat.loadIdentity();
 			v.set(0, 0, 0);
 			mat.translate(v);
+			program.setUniformVec3("primColor", model.colPrim);
+			program.setUniformVec3("altColor", model.colAlt);
 			program.setMat4("modelMat", mat);
 			glBindVertexArray(model.vao);
 			glDrawArrays(GL_TRIANGLES, 0, model.count);
@@ -168,6 +176,10 @@ public class GLInterface {
 			
 			glfwSwapBuffers(window);
 			glfwPollEvents();
+			
+			int error = glGetError();
+			if(error != GL_NO_ERROR)
+				System.out.println("GL error: "+error);
 		}
 	}
 	

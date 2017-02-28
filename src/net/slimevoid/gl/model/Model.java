@@ -1,16 +1,17 @@
 package net.slimevoid.gl.model;
 
-import com.sun.prism.ps.Shader;
+import net.slimevoid.lang.math.Vec3;
 
 public class Model {
 	
-	public final Shader shad;
 	public final int vao;
 	public final int count;
+	public final Vec3 colPrim, colAlt;
 	
-	public Model(Shader shad, int vao, int count) {
-		this.shad = shad;
+	public Model(int vao, int count) {
 		this.vao = vao;
 		this.count = count;
+		colPrim = new Vec3(.8F, .8F, .8F);
+		colAlt = new Vec3(.2F, .2F, .2F);
 	}
 }

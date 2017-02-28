@@ -50,7 +50,7 @@ public class Mat4 {
 		loadIdentity();
 		float scale = (float) (1 / tan(fov / 2));
 		m[0 * 4 + 0] = scale / aspect;
-		m[1 * 4 + 1] = scale;
+		m[1 * 4 + 1] = -scale;
 		m[2 * 4 + 2] = - far / (far - near);
 		m[2 * 4 + 3] = -1;
 		m[3 * 4 + 2] = - (far * near) / (far - near);
