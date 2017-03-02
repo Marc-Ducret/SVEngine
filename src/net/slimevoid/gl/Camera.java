@@ -24,12 +24,6 @@ public class Camera {
 		projMat.setPerspectiveProjectection(aspect, fov, near, far);
 	}
 	
-	public void computePos() {
-		pos.setNul();
-		pos.mul(viewMat);
-		pos.negate();
-	}
-	
 	public void computeMat() {
 		viewMat.loadIdentity();
 		viewMat.rotate(roll, Vec3.Z);

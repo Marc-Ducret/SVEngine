@@ -8,6 +8,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
 import static org.lwjgl.glfw.GLFW.GLFW_RESIZABLE;
+import static org.lwjgl.glfw.GLFW.GLFW_SAMPLES;
 import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
 import static org.lwjgl.glfw.GLFW.GLFW_VISIBLE;
 import static org.lwjgl.glfw.GLFW.glfwCreateWindow;
@@ -39,6 +40,7 @@ import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL11.glGetError;
+import static org.lwjgl.opengl.GL13.GL_MULTISAMPLE;
 import static org.lwjgl.opengl.GL20.glUseProgram;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.system.MemoryStack.stackPush;
@@ -48,6 +50,7 @@ import java.io.IOException;
 import java.nio.IntBuffer;
 
 import org.lwjgl.Version;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
@@ -96,6 +99,7 @@ public class GLInterface {
 		glfwDefaultWindowHints();
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 		glfwWindowHint(GLFW_RESIZABLE, windowsResizable ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_SAMPLES, 8);
 
 		window = glfwCreateWindow(windowWidth, windowHeight, windowTitle, NULL, NULL);
 		if ( window == NULL )
@@ -137,7 +141,7 @@ public class GLInterface {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		Model model = mm.getModel("test");
+		Model model = mm.getModel("ico");
 		
 		int ct = 0;
 		Mat4 mat = new Mat4();
@@ -148,6 +152,7 @@ public class GLInterface {
 		Camera cam = new Camera();
 		cam.setupProjection(windowWidth / (float) windowHeight, (float) PI/2.5F, .01F, 100F);
 		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_MULTISAMPLE);
 		//END TEST
 		
 		while ( !glfwWindowShouldClose(window) ) {
@@ -156,13 +161,14 @@ public class GLInterface {
 			//TEST
 			ct++;
 			cam.resetPos();
-			cam.translate((float) sin(ct * .01F) * 3, (float) cos(ct * .01F) * 3, 4);
+			cam.translate((float) sin(ct * .005F) * 2, (float) cos(ct * .005F) * 2, 3);
 			cam.lookAt(0, 0, 0);
 			ShaderProgram program = sm.getProgram("base");
 			glUseProgram(program.getId());
 			cam.computeMat();
 			program.setMat4("projMat", cam.projMat);
 			program.setMat4("viewMat", cam.viewMat);
+			program.setUniformVec3("camPos", cam.getPos());
 			mat.loadIdentity();
 			v.set(0, 0, 0);
 			mat.translate(v);

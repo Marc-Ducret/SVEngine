@@ -40,11 +40,11 @@ public class ModelManager {
 		throw new IllegalArgumentException("Unknown material "+mat);
 	}
 	
-	public int createVertexArray(float[] vertData, int[] styles) {
+	public int createVertexArray(float[] geom, int[] styles, float[] edgeWear) {
 		int vao = glGenVertexArrays();
 		glBindVertexArray(vao);
 			glBindBuffer(GL_ARRAY_BUFFER, glGenBuffers());
-			glBufferData(GL_ARRAY_BUFFER, vertData, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, geom, GL_STATIC_DRAW);
 			glVertexAttribPointer(0, 3, GL_FLOAT, false, 6*4, 0);
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(1, 3, GL_FLOAT, false, 6*4, 3*4);
@@ -53,6 +53,12 @@ public class ModelManager {
 			glBufferData(GL_ARRAY_BUFFER, styles, GL_STATIC_DRAW);
 			glVertexAttribIPointer(2, 1, GL_INT, 0, 0);
 			glEnableVertexAttribArray(2);
+			glBindBuffer(GL_ARRAY_BUFFER, glGenBuffers());
+			glBufferData(GL_ARRAY_BUFFER, edgeWear, GL_STATIC_DRAW);
+			for(int i = 0; i < 6; i ++) {
+				glVertexAttribPointer(3+i, 3, GL_FLOAT, false, 6*3*4, i*3*4);
+				glEnableVertexAttribArray(3+i);
+			}
 		glBindVertexArray(0);
 		return vao;
 	}

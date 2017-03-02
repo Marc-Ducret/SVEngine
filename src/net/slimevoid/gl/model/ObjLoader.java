@@ -12,15 +12,6 @@ import net.slimevoid.utils.Utils;
 
 public class ObjLoader extends ModelLoader {
 	
-	private static class Triangle {
-		final Vec3[] pts = new Vec3[3];
-		final Vec3[] norm = new Vec3[3];
-		final int style;
-		
-		public Triangle(int style) {
-			this.style = style;
-		}
-	}
 
 	@Override
 	protected Model loadModel(ModelManager mm, String path) throws IOException {
@@ -31,14 +22,18 @@ public class ObjLoader extends ModelLoader {
 			if(!scan.next().equals("mtllib")) err = "Missing mtllib";
 			else {
 				scan.next();// matlib name is irrelevant 
-				List<Vec3> vert = new ArrayList<>();
-				List<Vec3> norm = new ArrayList<>();
+				List<Vertice> verts = new ArrayList<>();
+				List<Vec3> norms = new ArrayList<>();
 				int curStyle = -1;
 				List<Triangle> trigs = new ArrayList<>();
 				while(scan.hasNext()) {
 					String tok = scan.next();
-					if(tok.equals("v")) vert.add(new Vec3(scan.nextFloat(), scan.nextFloat(), scan.nextFloat()));
-					else if(tok.equals("vn")) norm.add(new Vec3(scan.nextFloat(), scan.nextFloat(), scan.nextFloat()));
+					if(tok.equals("v")) {
+						Vertice v = new Vertice();
+						v.pos.set(scan.nextFloat(), scan.nextFloat(), scan.nextFloat());
+						verts.add(v);
+					}
+					else if(tok.equals("vn")) norms.add(new Vec3(scan.nextFloat(), scan.nextFloat(), scan.nextFloat()));
 					else if(tok.equals("usemtl")) {
 						String matName = scan.next();
 						int mat;
@@ -58,8 +53,10 @@ public class ObjLoader extends ModelLoader {
 					else if(tok.equals("f")) {
 						Triangle t = new Triangle(curStyle);
 						for(int i = 0; i < 3; i ++) {
-							t.pts[i] = vert.get(scan.nextInt()-1);
-							t.norm[i] = norm.get(scan.nextInt()-1);
+							Vertice v = verts.get(scan.nextInt()-1);
+							v.adjTrigs.add(t);
+							t.pts[i] = v;
+							t.norm.set(norms.get(scan.nextInt()-1));
 						}
 						trigs.add(t);
 					} else {
@@ -67,16 +64,9 @@ public class ObjLoader extends ModelLoader {
 						break;
 					}
 				}
-				float[] buf = new float[trigs.size() * 3 * 2 * 3];
-				int[] styles = new int[trigs.size() * 3];
-				for(int i = 0; i < trigs.size() * 3 * 2; i ++) {
-					Vec3 v = i%2 == 0 ? trigs.get(i/6).pts[(i/2)%3] : trigs.get(i/6).norm[(i/2)%3];
-					buf[i * 3 + 0] = v.x; buf[i * 3 + 1] = v.y; buf[i * 3 + 2] = v.z;
-				}
-				for(int i = 0; i < trigs.size() * 3; i ++) styles[i] = trigs.get(i/3).style;
 				if(err == null) {
 					scan.close();
-					return new Model(mm.createVertexArray(buf, styles), trigs.size() * 3);
+					return buildModel(mm, verts, trigs);
 				}
 			}
 		} catch(NoSuchElementException e) {
