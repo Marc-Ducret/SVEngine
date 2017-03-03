@@ -52,6 +52,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
 
+import net.slimevoid.gl.gui.Gui;
 import net.slimevoid.gl.model.ModelManager;
 import net.slimevoid.gl.model.ObjLoader;
 import net.slimevoid.gl.shader.ShaderManager;
@@ -72,6 +73,7 @@ public class GLInterface {
 	private static Camera cam;
 	
 	private static List<Drawable> drawables = new ArrayList<>(); //TODO finish impl
+	private static Gui currentGui;
 	private static long lastTick, nextTick;
 	
 	private static boolean alive;
@@ -175,9 +177,8 @@ public class GLInterface {
 		while ( !glfwWindowShouldClose(window) ) {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			ShaderProgram program = shaderManager.getProgram("base");
-			modelManager.loadWaitingModels();
-			draw(program, getInterpolation(), modelMat);
+			drawWorld(modelMat);
+			drawGui(currentGui);
 			
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -188,7 +189,13 @@ public class GLInterface {
 		}
 	}
 	
-	private static void draw(ShaderProgram program, float interpolation, Mat4 modelMat) {
+	private static void drawWorld(Mat4 modelMat) {
+		ShaderProgram program = shaderManager.getProgram("base");
+		modelManager.loadWaitingModels();
+		drawList(program, getInterpolation(), modelMat);
+	}
+	
+	private static void drawList(ShaderProgram program, float interpolation, Mat4 modelMat) {
 		modelMat.loadIdentity();
 		glUseProgram(program.getId());
 		synchronized(cam) {
@@ -200,6 +207,12 @@ public class GLInterface {
 		synchronized(drawables) {
 			for(Drawable d : drawables) d.draw(program, interpolation, modelMat);
 		}
+	}
+	
+	private static void drawGui(Gui gui) {
+		if(gui == null) return;
+		if(!gui.isOpaque()) drawGui(gui.getParent());
+		
 	}
 	
 	private static void free() {
@@ -226,6 +239,16 @@ public class GLInterface {
 		synchronized(drawables) {
 			drawables.add(d);
 		}
+	}
+	
+	public static void closeGui() {
+		if(currentGui == null) throw new RuntimeException("No gui to close");
+		currentGui = currentGui.getParent();
+	}
+	
+	public static void changeGui(Gui gui) {
+		gui.setParent(currentGui);
+		currentGui = gui;
 	}
 	
 	/**

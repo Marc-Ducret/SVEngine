@@ -24,7 +24,7 @@ public class Camera {
 		projMat.setPerspectiveProjectection(aspect, fov, near, far);
 	}
 	
-	public void computeMat() {
+	public void computeMat() { //TODO interpolation
 		viewMat.loadIdentity();
 		viewMat.rotate(roll, Vec3.Z);
 		viewMat.rotate(pitch, Vec3.X);
