@@ -11,6 +11,7 @@ public class Utils {
 	 * Start with / for inside jar?
 	 */
 	public static String readRessource(String path) throws IOException {
+		if(!path.startsWith("/")) path = "/"+path;
 		InputStream stream = Utils.class.getResourceAsStream(path);
 		if(stream == null) throw new IOException("No such ressource "+path);
 		BufferedReader read = new BufferedReader(new InputStreamReader(stream));

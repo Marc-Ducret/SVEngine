@@ -4,8 +4,8 @@ import net.slimevoid.lang.math.Vec3;
 
 public class Model {
 	
-	public final int vao;
-	public final int count;
+	public int vao;
+	public int count;
 	public final Vec3 colPrim, colAlt;
 	
 	public Model(int vao, int count) {

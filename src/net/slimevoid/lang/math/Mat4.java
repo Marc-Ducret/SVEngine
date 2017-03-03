@@ -35,6 +35,16 @@ public class Mat4 {
 		return this;
 	}
 	
+	public Mat4 set(Mat4 mat) {
+		for(int i = 0; i < m.length; i++) m[i] = mat.m[i];
+		return this;
+	}
+	
+	public Mat4 add(Mat4 mat) {
+		for(int i = 0; i < m.length; i++) m[i] += mat.m[i];
+		return this;
+	}
+	
 //	public Mat4 setOrthoProjection(float r, float l, float t, float b, float near, float far) {
 //		loadIdentity();
 //		m[0 * 4 + 0] = 2 / (r - l);
@@ -99,8 +109,13 @@ public class Mat4 {
 		return this;
 	}
 	
+	public Mat4 mul(float s) {
+		for(int i = 0; i < m.length; i++) m[i] *= s;
+		return this;
+	}
+	
 	public Mat4 mul(Mat4 mat) {
-		float[] nm = new float[16];
+		float[] nm = new float[16]; //TODO reword to avoid allocation
 		for(int y = 0; y < 4; y++) {
 			for(int x = 0; x < 4; x++) {
 				float res = 0;

@@ -14,7 +14,9 @@ import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 import static org.lwjgl.opengl.GL30.glVertexAttribIPointer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.slimevoid.utils.Utils;
@@ -24,6 +26,7 @@ public class ModelManager {
 	private final ModelLoader loader;
 	private final String modelFolder;
 	private final Map<String, Model> models = new HashMap<>();
+	private final List<String> toLoad = new ArrayList<>();
 	private String[] materials;
 	
 	public ModelManager(ModelLoader loader, String modelFolder) {
@@ -31,7 +34,7 @@ public class ModelManager {
 		this.modelFolder = modelFolder;
 	}
 	
-	public void initMaterials() throws IOException {
+	public void init() throws IOException {
 		materials = Utils.readRessource(modelFolder+"/materials").split("\n");
 	}
 	
@@ -64,14 +67,29 @@ public class ModelManager {
 	}
 	
 	public Model getModel(String name) {
-		if(!models.containsKey(name)) {
-			if(materials == null) throw new RuntimeException("Materials not initialized");
-			try {
-				models.put(name, loader.loadModel(this, modelFolder+"/"+name));
-			} catch(IOException e) {
-				throw new RuntimeException(e); //TODO better error handling with default model
+		synchronized(models) {
+			if(!models.containsKey(name)) {
+				if(materials == null) throw new RuntimeException("Materials not initialized");
+				models.put(name, new Model(0, 0));
+				toLoad.add(name);
+			}
+			return models.get(name);
+		}
+	}
+	
+	public void loadWaitingModels() {
+		synchronized(models) {
+			while(!toLoad.isEmpty()) {
+				String name = toLoad.remove(0);
+				try {
+					Model m = loader.loadModel(this, modelFolder+"/"+name); //TODO better method
+					Model real = models.get(name);
+					real.vao = m.vao;
+					real.count = m.count;
+				} catch(IOException e) {
+					throw new RuntimeException(e); //TODO better error handling with default model
+				}
 			}
 		}
-		return models.get(name);
 	}
 }

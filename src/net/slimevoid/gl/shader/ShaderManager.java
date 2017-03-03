@@ -9,6 +9,7 @@ import static org.lwjgl.opengl.GL20.glAttachShader;
 import static org.lwjgl.opengl.GL20.glCompileShader;
 import static org.lwjgl.opengl.GL20.glCreateProgram;
 import static org.lwjgl.opengl.GL20.glCreateShader;
+import static org.lwjgl.opengl.GL20.glDeleteProgram;
 import static org.lwjgl.opengl.GL20.glGetProgramInfoLog;
 import static org.lwjgl.opengl.GL20.glGetProgrami;
 import static org.lwjgl.opengl.GL20.glGetShaderInfoLog;
@@ -70,5 +71,12 @@ public class ShaderManager {
 		if(glGetProgrami(program, GL_LINK_STATUS) == GL_FALSE)
 			throw new IOException("Can't load program "+name+" as linking failed.\n"+glGetProgramInfoLog(program));
 		return new ShaderProgram (program);
+	}
+
+	public void unloadShaders() {
+		for(ShaderProgram prog : programs.values()) {
+			glDeleteProgram(prog.getId());
+		}
+		programs.clear();
 	}
 }
