@@ -3,6 +3,8 @@ package net.slimevoid.gl.gui;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.slimevoid.gl.GLInterface;
+
 public class Gui {
 
 	private Gui parent;
@@ -37,5 +39,9 @@ public class Gui {
 	
 	public boolean isOpaque() {
 		return opaque;
+	}
+	
+	public void draw() {
+		GLInterface.addRectangle(new Rectangle(0, 0, 100, 100));
 	}
 }

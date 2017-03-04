@@ -101,10 +101,14 @@ public class Mat4 {
 	}
 	
 	public Mat4 setScale(Vec3 v) {
+		return setScale(v.x, v.y, v.z);
+	}
+	
+	public Mat4 setScale(float x, float y, float z) {
 		loadIdentity();
-		m[0 * 4 + 0] = v.x;
-		m[1 * 4 + 1] = v.y;
-		m[2 * 4 + 2] = v.z;
+		m[0 * 4 + 0] = x;
+		m[1 * 4 + 1] = y;
+		m[2 * 4 + 2] = z;
 		m[3 * 4 + 3] = 1;
 		return this;
 	}
@@ -150,7 +154,11 @@ public class Mat4 {
 	}
 	
 	public Mat4 scale(float s) {
-		return scale(new Vec3(s, s, s)); //TODO without allocation
+		return scale(s, s, s);
+	}
+	
+	public Mat4 scale(float x, float y, float z) {
+		return mul(TMP_MAT.setScale(x, y, z));
 	}
 	
 	public Mat4 scale(Vec3 v) {

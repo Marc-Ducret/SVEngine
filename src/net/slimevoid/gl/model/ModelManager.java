@@ -28,6 +28,7 @@ public class ModelManager {
 	private final Map<String, Model> models = new HashMap<>();
 	private final List<String> toLoad = new ArrayList<>();
 	private String[] materials;
+	private int vaoRectangle;
 	
 	public ModelManager(ModelLoader loader, String modelFolder) {
 		this.loader = loader;
@@ -36,6 +37,12 @@ public class ModelManager {
 	
 	public void init() throws IOException {
 		materials = Utils.readRessource(modelFolder+"/materials").split("\n");
+		vaoRectangle = createPlaneVertexArray(	1, 0,
+											 	1, 1,
+											 	0, 1,
+											 	0, 1,
+											 	0, 0,
+											 	1, 0);
 	}
 	
 	public int getMaterialIndex(String mat) {
@@ -43,7 +50,7 @@ public class ModelManager {
 		throw new IllegalArgumentException("Unknown material "+mat);
 	}
 	
-	public int createVertexArray(float[] geom, int[] styles, float[] edgeWear) {
+	public int createModelVertexArray(float[] geom, int[] styles, float[] edgeWear) {
 		int vao = glGenVertexArrays();
 		glBindVertexArray(vao);
 			glBindBuffer(GL_ARRAY_BUFFER, glGenBuffers());
@@ -62,6 +69,17 @@ public class ModelManager {
 				glVertexAttribPointer(3+i, 3, GL_FLOAT, false, 6*3*4, i*3*4);
 				glEnableVertexAttribArray(3+i);
 			}
+		glBindVertexArray(0);
+		return vao;
+	}
+	
+	public int createPlaneVertexArray(float...geom) {
+		int vao = glGenVertexArrays();
+		glBindVertexArray(vao);
+			glBindBuffer(GL_ARRAY_BUFFER, glGenBuffers());
+			glBufferData(GL_ARRAY_BUFFER, geom, GL_STATIC_DRAW);
+			glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, 0);
+			glEnableVertexAttribArray(0);
 		glBindVertexArray(0);
 		return vao;
 	}
@@ -91,5 +109,9 @@ public class ModelManager {
 				}
 			}
 		}
+	}
+	
+	public int getVaoRectangle() {
+		return vaoRectangle;
 	}
 }

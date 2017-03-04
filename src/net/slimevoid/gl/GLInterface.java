@@ -32,12 +32,14 @@ import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
-import static org.lwjgl.opengl.GL11.GL_NO_ERROR;
+import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
+import static org.lwjgl.opengl.GL11.glDisable;
+import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.glEnable;
-import static org.lwjgl.opengl.GL11.glGetError;
 import static org.lwjgl.opengl.GL20.glUseProgram;
+import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
@@ -50,9 +52,11 @@ import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.system.MemoryStack;
 
 import net.slimevoid.gl.gui.Gui;
+import net.slimevoid.gl.gui.Rectangle;
 import net.slimevoid.gl.model.ModelManager;
 import net.slimevoid.gl.model.ObjLoader;
 import net.slimevoid.gl.shader.ShaderManager;
@@ -72,7 +76,8 @@ public class GLInterface {
 	private static ModelManager modelManager;
 	private static Camera cam;
 	
-	private static List<Drawable> drawables = new ArrayList<>(); //TODO finish impl
+	private static List<Drawable> drawables = new ArrayList<>();
+	private static Rectangle rectangles;
 	private static Gui currentGui;
 	private static long lastTick, nextTick;
 	
@@ -146,6 +151,9 @@ public class GLInterface {
 		glfwMakeContextCurrent(window);
 		glfwSwapInterval(1);
 		glfwShowWindow(window);
+		
+		GL.createCapabilities();
+		GLUtil.setupDebugMessageCallback(System.out); //TODO make better
 	}
 	
 	private static void initManagers() {
@@ -162,41 +170,36 @@ public class GLInterface {
 		cam = new Camera();
 		cam.setupProjection(windowWidth / (float) windowHeight, (float) PI/2.5F, .01F, 100F);
 		cam.computeMat();
+		changeGui(new Gui());
 	}
 	
 	private static void loop() {
-		GL.createCapabilities();
-
 		glClearColor(0.8f, 0.8f, 0.9f, 0.0f);
-		glEnable(GL_DEPTH_TEST);
-		
 		
 		Mat4 modelMat = new Mat4();
+		Mat4 viewMat2D = new Mat4();
 		
 		
 		while ( !glfwWindowShouldClose(window) ) {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			drawWorld(modelMat);
-			drawGui(currentGui);
+			drawGui(viewMat2D, modelMat);
 			
 			glfwSwapBuffers(window);
 			glfwPollEvents();
-			
-			int error = glGetError();
-			if(error != GL_NO_ERROR)
-				System.out.println("GL error: "+error);
 		}
 	}
 	
 	private static void drawWorld(Mat4 modelMat) {
+		glEnable(GL_DEPTH_TEST);
 		ShaderProgram program = shaderManager.getProgram("base");
 		modelManager.loadWaitingModels();
 		drawList(program, getInterpolation(), modelMat);
 	}
 	
 	private static void drawList(ShaderProgram program, float interpolation, Mat4 modelMat) {
-		modelMat.loadIdentity();
+		if(drawables.isEmpty()) return;
 		glUseProgram(program.getId());
 		synchronized(cam) {
 			cam.computeMat();
@@ -209,10 +212,24 @@ public class GLInterface {
 		}
 	}
 	
-	private static void drawGui(Gui gui) {
-		if(gui == null) return;
-		if(!gui.isOpaque()) drawGui(gui.getParent());
-		
+	private static void drawGui(Mat4 viewMat, Mat4 modelMat) {
+		if(currentGui == null) return;
+		glDisable(GL_DEPTH_TEST);
+		viewMat.setTranslate(-1, -1, 0);
+		viewMat.scale(2F / windowWidth, 2F / windowHeight, 1);
+		ShaderProgram program = shaderManager.getProgram("plane");
+		glUseProgram(program.getId());
+		program.setMat4("viewMat", viewMat);
+		clearRectangles();
+		currentGui.draw();
+		for(Rectangle r = rectangles; r != null; r = r.next) {
+			modelMat.setTranslate(r.x, r.y, 0);
+			modelMat.scale(r.w, r.h, 1);
+			program.setMat4("modelMat", modelMat);
+			glBindVertexArray(modelManager.getVaoRectangle());
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			glBindVertexArray(0);
+		}
 	}
 	
 	private static void free() {
@@ -239,6 +256,15 @@ public class GLInterface {
 		synchronized(drawables) {
 			drawables.add(d);
 		}
+	}
+	
+	public static void addRectangle(Rectangle r) {
+		r.next = rectangles;
+		rectangles = r;
+	}
+	
+	private static void clearRectangles() {
+		rectangles = null;
 	}
 	
 	public static void closeGui() {

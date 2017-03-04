@@ -62,7 +62,7 @@ public abstract class ModelLoader {
 			}
 		}
 				
-		return new Model(mm.createVertexArray(geom, styles, edgeWear), trigs.size() * 3);
+		return new Model(mm.createModelVertexArray(geom, styles, edgeWear), trigs.size() * 3);
 	}
 	
 	private void processOuter(List<Vertice> verts, List<Triangle> trigs) {
