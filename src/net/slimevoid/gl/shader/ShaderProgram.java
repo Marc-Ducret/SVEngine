@@ -14,6 +14,7 @@ import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.slimevoid.gl.texture.Texture;
 import net.slimevoid.lang.math.Mat4;
 import net.slimevoid.lang.math.Vec2;
 import net.slimevoid.lang.math.Vec3;
@@ -45,10 +46,10 @@ public class ShaderProgram {
 //		setSampler2D(string+"Color", rt.getColorTex());
 //		setSampler2D(string+"Depth", rt.getColorTex());
 //	}
-//	
-//	public void setSampler2D(String string, Texture texture) { 
-//		setSampler2D(string, texture.getTextureId());
-//	}
+	
+	public void setSampler2D(String string, Texture texture) { 
+		setSampler2D(string, texture.texId);
+	}
 	
 	public void setSampler2D(String string, int textureId) { 
 		glActiveTexture(GL_TEXTURE0 + textureId);

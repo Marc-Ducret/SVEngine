@@ -1,5 +1,7 @@
 package net.slimevoid.gl.gui;
 
+import static java.lang.Math.sin;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +44,6 @@ public class Gui {
 	}
 	
 	public void draw() {
-		GLInterface.addRectangle(new Rectangle(0, 0, 100, 100));
+		GLInterface.addRectangle(Rectangle.poolRectangle((int) (sin(System.currentTimeMillis()/1000.0) * 200) + 200, 0, 100, 100, "tex"));
 	}
 }

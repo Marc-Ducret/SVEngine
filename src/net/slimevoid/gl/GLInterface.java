@@ -61,6 +61,8 @@ import net.slimevoid.gl.model.ModelManager;
 import net.slimevoid.gl.model.ObjLoader;
 import net.slimevoid.gl.shader.ShaderManager;
 import net.slimevoid.gl.shader.ShaderProgram;
+import net.slimevoid.gl.texture.Texture;
+import net.slimevoid.gl.texture.TextureManager;
 import net.slimevoid.lang.math.Mat4;
 
 public class GLInterface {
@@ -74,6 +76,7 @@ public class GLInterface {
 	
 	private static ShaderManager shaderManager;
 	private static ModelManager modelManager;
+	private static TextureManager textureManager;
 	private static Camera cam;
 	
 	private static List<Drawable> drawables = new ArrayList<>();
@@ -159,6 +162,7 @@ public class GLInterface {
 	private static void initManagers() {
 		shaderManager = new ShaderManager("shader");
 		modelManager = new ModelManager(new ObjLoader(), "model");
+		textureManager = new TextureManager("texture");
 		try {
 			modelManager.init();
 		} catch (IOException e) {
@@ -225,6 +229,8 @@ public class GLInterface {
 		for(Rectangle r = rectangles; r != null; r = r.next) {
 			modelMat.setTranslate(r.x, r.y, 0);
 			modelMat.scale(r.w, r.h, 1);
+			Texture tex = textureManager.getTexture(r.texture);
+			program.setSampler2D("texture", tex);
 			program.setMat4("modelMat", modelMat);
 			glBindVertexArray(modelManager.getVaoRectangle());
 			glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -233,6 +239,7 @@ public class GLInterface {
 	}
 	
 	private static void free() {
+		System.out.println("Stopped LWJGL");
 		alive = false;
 		glfwFreeCallbacks(window);
 		glfwDestroyWindow(window);
@@ -264,7 +271,10 @@ public class GLInterface {
 	}
 	
 	private static void clearRectangles() {
-		rectangles = null;
+		while(rectangles != null) {
+			rectangles.free();
+			rectangles = rectangles.next;
+		}
 	}
 	
 	public static void closeGui() {
