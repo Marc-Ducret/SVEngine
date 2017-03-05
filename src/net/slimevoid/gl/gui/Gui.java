@@ -44,6 +44,7 @@ public class Gui {
 	}
 	
 	public void draw() {
-		GLInterface.addRectangle(Rectangle.poolRectangle((int) (sin(System.currentTimeMillis()/1000.0) * 200) + 200, 0, 100, 100, "tex"));
+		GLInterface.addText("Hello world!", "consolas", 12, 0, 0);
+		GLInterface.addRectangle(Rectangle.poolRectangle((int) (sin(System.currentTimeMillis()/1000.0) * 200) + 200, 0, 200, 200, "tex"));
 	}
 }

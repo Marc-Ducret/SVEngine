@@ -7,10 +7,13 @@ out vec2 texCoord;
 
 uniform mat4 viewMat;
 uniform mat4 modelMat;
+uniform vec2 texOff;
+uniform vec2 texScale;
+uniform vec3 color;
 
 void main() {
-	texCoord = position;
+	texCoord = position * texScale + texOff;
 	screenPos = (modelMat * vec4(position, 0, 1)).xy;
 	gl_Position = viewMat * modelMat * vec4(position, 0, 1);
-	vertCol = vec3(1, 1, 1);
+	vertCol = color;
 }

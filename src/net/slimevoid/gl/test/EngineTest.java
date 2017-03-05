@@ -24,6 +24,7 @@ public class EngineTest {
 			GLInterface.provideTickInfo(start+TICK_LEN);
 			Thread.sleep(TICK_LEN/1000);
 		}
+		System.exit(0);
 	}
 	
 	static int ct = 0;

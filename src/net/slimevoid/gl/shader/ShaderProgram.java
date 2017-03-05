@@ -16,7 +16,6 @@ import java.util.Map;
 
 import net.slimevoid.gl.texture.Texture;
 import net.slimevoid.lang.math.Mat4;
-import net.slimevoid.lang.math.Vec2;
 import net.slimevoid.lang.math.Vec3;
 
 public class ShaderProgram {
@@ -61,8 +60,8 @@ public class ShaderProgram {
 		glUniformMatrix4fv(getUniformLoc(string), false, mat.m);
 	}
 	
-	public void setVec2(String name, Vec2 v) {
-		glUniform2f(getUniformLoc(name), (float) v.x, (float) v.y);
+	public void setVec2(String name, float x, float y) {
+		glUniform2f(getUniformLoc(name), x, y);
 	}
 	
 	private int getUniformLoc(String name) {

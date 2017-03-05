@@ -29,10 +29,14 @@ import static org.lwjgl.glfw.GLFW.glfwSwapInterval;
 import static org.lwjgl.glfw.GLFW.glfwTerminate;
 import static org.lwjgl.glfw.GLFW.glfwWindowHint;
 import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
+import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
+import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
+import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
+import static org.lwjgl.opengl.GL11.glBlendFunc;
 import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glDisable;
@@ -53,6 +57,7 @@ import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
 import net.slimevoid.gl.gui.Gui;
@@ -122,6 +127,7 @@ public class GLInterface {
 		initScene();
 	}
 	
+	private static Callback debugCallback;
 	private static void initWindow() {
 		glfwDefaultWindowHints();
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -156,7 +162,7 @@ public class GLInterface {
 		glfwShowWindow(window);
 		
 		GL.createCapabilities();
-		GLUtil.setupDebugMessageCallback(System.out); //TODO make better
+		debugCallback = GLUtil.setupDebugMessageCallback(System.out); //TODO make better
 	}
 	
 	private static void initManagers() {
@@ -219,6 +225,8 @@ public class GLInterface {
 	private static void drawGui(Mat4 viewMat, Mat4 modelMat) {
 		if(currentGui == null) return;
 		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		viewMat.setTranslate(-1, -1, 0);
 		viewMat.scale(2F / windowWidth, 2F / windowHeight, 1);
 		ShaderProgram program = shaderManager.getProgram("plane");
@@ -230,6 +238,9 @@ public class GLInterface {
 			modelMat.setTranslate(r.x, r.y, 0);
 			modelMat.scale(r.w, r.h, 1);
 			Texture tex = textureManager.getTexture(r.texture);
+			program.setUniformVec3("color", r.color);
+			program.setVec2("texOff", r.texX / (float) tex.w, r.texY / (float) tex.h);
+			program.setVec2("texScale", r.texW / (float) tex.w, r.texH / (float) tex.h);
 			program.setSampler2D("texture", tex);
 			program.setMat4("modelMat", modelMat);
 			glBindVertexArray(modelManager.getVaoRectangle());
@@ -240,6 +251,7 @@ public class GLInterface {
 	
 	private static void free() {
 		System.out.println("Stopped LWJGL");
+		debugCallback.free();
 		alive = false;
 		glfwFreeCallbacks(window);
 		glfwDestroyWindow(window);
@@ -268,6 +280,19 @@ public class GLInterface {
 	public static void addRectangle(Rectangle r) {
 		r.next = rectangles;
 		rectangles = r;
+	}
+	
+	private static StringBuilder builder = new StringBuilder();
+	public static void addText(String txt, String font, int size, int x, int y) {
+		builder.setLength(0);
+		String texture = builder.append("#font_").append(font).append('_').append(size).toString();
+		for(int i = 0; i < txt.length(); i ++) {
+			char c = txt.charAt(i);
+			Rectangle r = Rectangle.poolRectangle(x + (size-4)*i, y, size, size, texture); //TODO -3??
+			r.setTextureOffset((c%16)*16, 256 - 16 -(c/16)*16-3); //TODO -3??
+			r.setColor(1, 0, 0);
+			addRectangle(r);
+		}
 	}
 	
 	private static void clearRectangles() {
