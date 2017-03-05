@@ -33,5 +33,5 @@ void main() {
 	}
 
 	factor += diffuse * .5F + 0.5F + spec * .2F;
-	color = vec4(vertCol, 1.0f) * factor;
+	color = vec4(vertCol * factor, 1.0f);
 }

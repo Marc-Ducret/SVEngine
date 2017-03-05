@@ -89,6 +89,9 @@ public class GLInterface {
 	private static Gui currentGui;
 	private static long lastTick, nextTick;
 	
+	private static int frameCT, tickCT, fps, tps;
+	private static long lastCount = getTimeMicro();
+	
 	private static boolean alive;
 	
 	public static void start(int w, int h, String title, boolean resizable) throws InterruptedException {
@@ -158,7 +161,7 @@ public class GLInterface {
 		}
 
 		glfwMakeContextCurrent(window);
-		glfwSwapInterval(1);
+		glfwSwapInterval(1); //TODO better solution mb
 		glfwShowWindow(window);
 		
 		GL.createCapabilities();
@@ -192,7 +195,8 @@ public class GLInterface {
 		
 		while ( !glfwWindowShouldClose(window) ) {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+			
+			frameCT++;
 			drawWorld(modelMat);
 			drawGui(viewMat2D, modelMat);
 			
@@ -234,6 +238,8 @@ public class GLInterface {
 		program.setMat4("viewMat", viewMat);
 		clearRectangles();
 		currentGui.draw();
+		addText("FPS: "+fps, "consolas", 14, windowWidth - 80, windowHeight-16);
+		addText("TPS: "+tps, "consolas", 14, windowWidth - 80, windowHeight-32);
 		for(Rectangle r = rectangles; r != null; r = r.next) {
 			modelMat.setTranslate(r.x, r.y, 0);
 			modelMat.scale(r.w, r.h, 1);
@@ -269,6 +275,12 @@ public class GLInterface {
 	public static void provideTickInfo(long nextTickEstimate) {
 		lastTick = getTimeMicro();
 		nextTick = nextTickEstimate;
+		tickCT++;
+		if(lastTick - lastCount >= 1000000) {
+			lastCount += 1000000;
+			fps = frameCT; frameCT = 0;
+			tps = tickCT; tickCT = 0;
+		}
 	}
 	
 	public static void addDrawable(Drawable d) {
@@ -290,7 +302,7 @@ public class GLInterface {
 			char c = txt.charAt(i);
 			Rectangle r = Rectangle.poolRectangle(x + (size-4)*i, y, size, size, texture); //TODO -3??
 			r.setTextureOffset((c%16)*16, 256 - 16 -(c/16)*16-3); //TODO -3??
-			r.setColor(1, 0, 0);
+			r.setColor(0, 0, 0);
 			addRectangle(r);
 		}
 	}
