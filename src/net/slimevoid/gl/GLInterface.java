@@ -75,7 +75,7 @@ public class GLInterface {
 	private static long window;
 	
 	private static boolean started = false;
-	private static int windowWidth, windowHeight;
+	public static int windowWidth, windowHeight;
 	private static String windowTitle;
 	private static boolean windowsResizable;
 	
@@ -161,7 +161,7 @@ public class GLInterface {
 		}
 
 		glfwMakeContextCurrent(window);
-		glfwSwapInterval(1); //TODO better solution mb
+		glfwSwapInterval(1); //TODO better solution mb and findout gliches when high fps
 		glfwShowWindow(window);
 		
 		GL.createCapabilities();
@@ -183,7 +183,6 @@ public class GLInterface {
 		cam = new Camera();
 		cam.setupProjection(windowWidth / (float) windowHeight, (float) PI/2.5F, .01F, 100F);
 		cam.computeMat();
-		changeGui(new Gui());
 	}
 	
 	private static void loop() {
@@ -207,6 +206,7 @@ public class GLInterface {
 	
 	private static void drawWorld(Mat4 modelMat) {
 		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
 		ShaderProgram program = shaderManager.getProgram("base");
 		modelManager.loadWaitingModels();
 		drawList(program, getInterpolation(), modelMat);
@@ -320,6 +320,7 @@ public class GLInterface {
 	}
 	
 	public static void changeGui(Gui gui) {
+		gui.solve();
 		gui.setParent(currentGui);
 		currentGui = gui;
 	}

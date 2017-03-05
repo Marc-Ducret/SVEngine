@@ -1,11 +1,7 @@
 package net.slimevoid.gl.gui;
 
-import static java.lang.Math.sin;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import net.slimevoid.gl.GLInterface;
 
 public class Gui {
 
@@ -44,7 +40,11 @@ public class Gui {
 	}
 	
 	public void draw() {
-		GLInterface.addText("Hello world!", "consolas", 12, 0, 0);
-		GLInterface.addRectangle(Rectangle.poolRectangle((int) (sin(System.currentTimeMillis()/1000.0) * 200) + 200, 0, 200, 200, "tex"));
+		for(Component comp : comps) comp.draw();
+	}
+	
+	public void solve() {
+		for(Component comp : comps) comp.reset();
+		for(Component comp : comps) comp.solve();
 	}
 }

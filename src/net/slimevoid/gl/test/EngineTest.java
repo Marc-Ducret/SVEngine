@@ -5,6 +5,8 @@ import static java.lang.Math.sin;
 import net.slimevoid.gl.Camera;
 import net.slimevoid.gl.Drawable;
 import net.slimevoid.gl.GLInterface;
+import net.slimevoid.gl.gui.Component;
+import net.slimevoid.gl.gui.Gui;
 import net.slimevoid.lang.math.Mat4;
 import net.slimevoid.lang.math.Vec3;
 
@@ -18,6 +20,14 @@ public class EngineTest {
 		object = new Drawable(GLInterface.getModelManager().getModel("ico"));
 		GLInterface.addDrawable(object);
 		
+		Gui g = new Gui();
+		Component c = new Component();
+		c.constrain(Component.N, c, Component.S, 50);
+		c.constrain(Component.S, null, Component.N, -75);
+		c.constrain(Component.W, null, Component.W, 25);
+		c.constrain(Component.E, c, Component.W, 50);
+		g.addComponent(c);
+		GLInterface.changeGui(g);
 		while(GLInterface.isAlive()) {
 			long start = GLInterface.getTimeMicro();
 			tick();
