@@ -1,5 +1,6 @@
 package net.slimevoid.gl.texture;
 
+import static org.lwjgl.opengl.GL11.GL_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_LINEAR;
 import static org.lwjgl.opengl.GL11.GL_REPEAT;
 import static org.lwjgl.opengl.GL11.GL_RGBA;
@@ -14,10 +15,6 @@ import static org.lwjgl.opengl.GL11.glGenTextures;
 import static org.lwjgl.opengl.GL11.glTexImage2D;
 import static org.lwjgl.opengl.GL11.glTexParameteri;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +23,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+
+import org.lwjgl.BufferUtils;
+import org.lwjgl.stb.STBTTBakedChar;
+import org.lwjgl.stb.STBTruetype;
+
+import net.slimevoid.utils.Utils;
 
 public class TextureManager {
 	
@@ -48,41 +51,48 @@ public class TextureManager {
 	}
 	
 	private Texture loadTexture(String name) throws IOException {
-		BufferedImage im;
 		if(name.startsWith("#font_")) {
-			im = loadFont(name.substring(6));
+			return loadFont(name.substring(6));
 		} else {
 			InputStream in = TextureManager.class.getResourceAsStream("/"+textureFolder+"/"+name+".png");
 			if(in == null) throw new IOException("No such file");
-			im = ImageIO.read(in);
+			return allocateImageTexture(ImageIO.read(in));
 		}
-		return allocateTexture(im);
 	}
 	
-	private BufferedImage loadFont(String name) throws IOException {
+	private Texture loadFont(String name) throws IOException {
 		String[] args = name.split("_");
 		if(args.length != 2) throw new IOException("Incorrect font name ["+name+"]");
 		String fontName = args[0];
 		try {
 			int size = Integer.parseInt(args[1]);
-			Font f = new Font(fontName, 0, size);
+			int texID = glGenTextures();
 			int bitmapSize = 256;
-			BufferedImage im = new BufferedImage(bitmapSize, bitmapSize, BufferedImage.TYPE_INT_ARGB);
-			Graphics2D g = im.createGraphics();
-			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			g.setColor(new Color(0, 0, 0, 0));
-			g.fillRect(0, 0, bitmapSize, bitmapSize);
-			g.setColor(new Color(0xFFFFFFFF));
-			g.setFont(f);
-			for(int i = 0; i < 256; i++) {
-				g.drawString(""+(char) i, (i%16)*16, 16+(i/16)*16);
+			STBTTBakedChar.Buffer cdata = STBTTBakedChar.malloc(96);
+
+			ByteBuffer ttf = Utils.ioResourceToByteBuffer("/"+textureFolder+"/"+fontName+".ttf", 160 * 1024);
+
+			ByteBuffer alphaMap = BufferUtils.createByteBuffer(bitmapSize * bitmapSize);
+			ByteBuffer rgba = BufferUtils.createByteBuffer(bitmapSize * bitmapSize * 4);
+			STBTruetype.stbtt_BakeFontBitmap(ttf, size, alphaMap, bitmapSize, bitmapSize, 32, cdata);
+			rgba.clear();
+			for(int i = 0; i < bitmapSize * bitmapSize; i++) {
+				rgba.put(4*i + 0, (byte) 0xFF);
+				rgba.put(4*i + 1, (byte) 0xFF);
+				rgba.put(4*i + 2, (byte) 0xFF);
+				rgba.put(4*i + 3, alphaMap.get(i));
 			}
-			return im;
+			
+			glBindTexture(GL_TEXTURE_2D, texID);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmapSize, bitmapSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+			return new TextureFont(bitmapSize, bitmapSize, texID, cdata);
 		} catch(NumberFormatException e) { throw new IOException("Incorrect font name ["+name+"]");}
 	}
 	
-	private Texture allocateTexture(BufferedImage img) {
+	private Texture allocateImageTexture(BufferedImage img) {
     	int w = img.getWidth();
         int h = img.getHeight();
         int[] pixels = img.getRGB(0, 0, w, h, null, 0, w);

@@ -7,10 +7,12 @@ public class ConstrainedInteger {
 	
 	private ConstrainedInteger parent;
 	private int offset;
+	private boolean constrained;
 	
 	public void setConstraint(ConstrainedInteger parent, int offset) {
 		this.parent = parent;
 		this.offset = offset;
+		constrained = true;
 	}
 	
 	public void solve() {
@@ -31,5 +33,9 @@ public class ConstrainedInteger {
 	public int getValue() {
 		if(!solved) throw new RuntimeException("Unsolved constraint");
 		return value;
+	}
+	
+	public boolean isConstrained() {
+		return constrained;
 	}
 }

@@ -39,6 +39,22 @@ public class Component {
 		coords[localDirection].setConstraint(parent == null ? null : parent.coords[parentDirection], offset);
 	}
 	
+	public void setSize(int w, int h) {
+		setWidth(w); setHeight(h);
+	}
+	
+	public void setWidth(int w) {
+		if(sX.isConstrained()) 		eX.setConstraint(sX, +w);
+		else if(eX.isConstrained())	sX.setConstraint(eX, -w);
+		else throw new RuntimeException("No horizontal constraint on "+this);
+	}
+	
+	public void setHeight(int h) {
+		if(sY.isConstrained()) 		eY.setConstraint(sY, +h);
+		else if(eY.isConstrained())	sY.setConstraint(eY, -h);
+		else throw new RuntimeException("No vertical constraint on "+this);
+	}
+	
 	public void reset() {
 		for(ConstrainedInteger coord : coords) coord.reset();
 	}

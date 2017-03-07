@@ -50,6 +50,7 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 import java.io.IOException;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +60,8 @@ import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
+import org.lwjgl.stb.STBTTAlignedQuad;
+import org.lwjgl.stb.STBTruetype;
 import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
@@ -69,6 +72,7 @@ import net.slimevoid.gl.model.ObjLoader;
 import net.slimevoid.gl.shader.ShaderManager;
 import net.slimevoid.gl.shader.ShaderProgram;
 import net.slimevoid.gl.texture.Texture;
+import net.slimevoid.gl.texture.TextureFont;
 import net.slimevoid.gl.texture.TextureManager;
 import net.slimevoid.lang.math.Mat4;
 
@@ -145,7 +149,7 @@ public class GLInterface {
 
 		glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
 			if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
-				glfwSetWindowShouldClose(window, true); //TODO keyboard / mouse managment
+				glfwSetWindowShouldClose(window, true);
 			if ( key == GLFW_KEY_F5 && action == GLFW_RELEASE )
 				shaderManager.unloadShaders();
 			if(currentGui != null) currentGui.keyChanged(key, action);
@@ -249,8 +253,8 @@ public class GLInterface {
 		program.setMat4("viewMat", viewMat);
 		clearRectangles();
 		currentGui.draw();
-		addText("FPS: "+fps, "consolas", 14, windowWidth - 80, windowHeight-16);
-		addText("TPS: "+tps, "consolas", 14, windowWidth - 80, windowHeight-32);
+		addText("FPS: "+fps+"\nTPS: "+tps, "consolas", 14, windowWidth - 80, windowHeight-16);
+		addText("test :)", "consolas", 14, 0, 0);
 		for(Rectangle r = rectangles; r != null; r = r.next) {
 			modelMat.setTranslate(r.x, r.y, 0);
 			modelMat.scale(r.w, r.h, 1);
@@ -307,15 +311,35 @@ public class GLInterface {
 	
 	private static StringBuilder builder = new StringBuilder();
 	public static void addText(String txt, String font, int size, int x, int y) {
+		addText(txt, font, size, x, y, 0x000000);
+	}
+	
+	public static void addText(String txt, String font, int size, int x, int y, int color) {
 		builder.setLength(0);
 		String texture = builder.append("#font_").append(font).append('_').append(size).toString();
-		for(int i = 0; i < txt.length(); i ++) {
-			char c = txt.charAt(i);
-			Rectangle r = Rectangle.poolRectangle(x + (size-4)*i, y, size, size); //TODO -3??
-			r.setTexture(texture);
-			r.setTextureOffset((c%16)*16, 256 - 16 -(c/16)*16-3); //TODO -3??
-			r.setColor(0, 0, 0);
-			addRectangle(r);
+		TextureFont tf = (TextureFont) textureManager.getTexture(texture);
+		try ( MemoryStack stack = stackPush() ) {
+			FloatBuffer xBuf = stack.floats(x);
+			FloatBuffer yBuf = stack.floats(-y);
+			STBTTAlignedQuad quadBuf = STBTTAlignedQuad.mallocStack(stack);
+			
+			for(int i = 0; i < txt.length(); i ++) {
+				char c = txt.charAt(i);
+				if ( c == '\n' ) {
+					yBuf.put(0, yBuf.get(0) + size);
+					xBuf.put(0, x);
+					continue;
+				} else if ( c < 32 || 128 <= c )
+					continue;
+				STBTruetype.stbtt_GetBakedQuad(tf.getCharData(), 256, 256, c - 32, xBuf, yBuf, quadBuf, true);
+				
+				Rectangle r = Rectangle.poolRectangle(quadBuf.x0(), -quadBuf.y0(), quadBuf.x1() - quadBuf.x0(), quadBuf.y0() - quadBuf.y1());
+				r.setTexture(texture);
+				r.setTextureOffset(quadBuf.s0() * 256, quadBuf.t0() * 256);
+				r.setTextureSize((quadBuf.s1() - quadBuf.s0()) * 256, (quadBuf.t1() - quadBuf.t0()) * 256);
+				r.setColor(color);
+				addRectangle(r);
+			}
 		}
 	}
 	

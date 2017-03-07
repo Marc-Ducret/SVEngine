@@ -6,17 +6,23 @@ public class Rectangle {
 	
 	private static Rectangle pool;
 	
-	public int x, y, w, h;
+	public float x, y, w, h;
 	public String texture;
 	public Rectangle next;
-	public int texX, texY, texW, texH;
+	public float texX, texY, texW, texH;
 	public Vec3 color = new Vec3(1, 1, 1);
 	
 	private Rectangle() {}
 	
-	public Rectangle setTextureOffset(int x, int y) {
+	public Rectangle setTextureOffset(float x, float y) {
 		texX = x;
 		texY = y;
+		return this;
+	}
+	
+	public Rectangle setTextureSize(float w, float h) {
+		texW = w;
+		texH = h;
 		return this;
 	}
 	
@@ -41,7 +47,7 @@ public class Rectangle {
 		pool = this;
 	}
 	
-	public static Rectangle poolRectangle(int x, int y, int w, int h) {
+	public static Rectangle poolRectangle(float x, float y, float w, float h) {
 		Rectangle r;
 		if(pool != null) {
 			r = pool;

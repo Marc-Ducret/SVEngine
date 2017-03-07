@@ -22,11 +22,10 @@ public class EngineTest {
 		GLInterface.addDrawable(object);
 		
 		Gui g = new Gui();
-		Button b = new Button();
-		b.constrain(Component.N, b, Component.S, 50);
+		Button b = new Button("Affaglepe", () -> {System.out.println("Hey!"); ct += 10;});
 		b.constrain(Component.S, null, Component.N, -75);
 		b.constrain(Component.W, null, Component.W, 25);
-		b.constrain(Component.E, b, Component.W, 200);
+		b.setSize(150, 40);
 		g.addComponent(b);
 		GLInterface.changeGui(g);
 		while(GLInterface.isAlive()) {
