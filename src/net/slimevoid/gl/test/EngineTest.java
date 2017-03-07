@@ -7,6 +7,7 @@ import net.slimevoid.gl.Drawable;
 import net.slimevoid.gl.GLInterface;
 import net.slimevoid.gl.gui.Component;
 import net.slimevoid.gl.gui.Gui;
+import net.slimevoid.gl.gui.component.Button;
 import net.slimevoid.lang.math.Mat4;
 import net.slimevoid.lang.math.Vec3;
 
@@ -21,12 +22,12 @@ public class EngineTest {
 		GLInterface.addDrawable(object);
 		
 		Gui g = new Gui();
-		Component c = new Component();
-		c.constrain(Component.N, c, Component.S, 50);
-		c.constrain(Component.S, null, Component.N, -75);
-		c.constrain(Component.W, null, Component.W, 25);
-		c.constrain(Component.E, c, Component.W, 50);
-		g.addComponent(c);
+		Button b = new Button();
+		b.constrain(Component.N, b, Component.S, 50);
+		b.constrain(Component.S, null, Component.N, -75);
+		b.constrain(Component.W, null, Component.W, 25);
+		b.constrain(Component.E, b, Component.W, 200);
+		g.addComponent(b);
 		GLInterface.changeGui(g);
 		while(GLInterface.isAlive()) {
 			long start = GLInterface.getTimeMicro();

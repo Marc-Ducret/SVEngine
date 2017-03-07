@@ -11,6 +11,7 @@ public class Component {
 	private ConstrainedInteger eX = new ConstrainedInteger();
 	private ConstrainedInteger eY = new ConstrainedInteger();
 	private ConstrainedInteger[] coords = new ConstrainedInteger[]{sX, sY, eX, eY};
+	private boolean mouseInside;
 	
 	public int getX() {
 		return sX.getValue();
@@ -46,7 +47,22 @@ public class Component {
 		for(ConstrainedInteger coord : coords) coord.solve();
 	}
 	
-	public void draw() {
-		GLInterface.addRectangle(Rectangle.poolRectangle(getX(), getY(), getW(), getH(), "tex"));
+	public void draw() {}
+	public void mouseEntered() {}
+	public void mouseLeft() {}
+	public void mouseMovedInside(int x, int y) {}
+	public void mouseButtonChanged(int button, int action) {}
+	public void keyChanged(int keycode, int action) {}
+	
+	public final void mouseMoved(int x, int y) {
+		boolean inside = x >= getX() && x <= getX() + getW() && y >= getY() && y <= getY() + getH();
+		if(inside && !mouseInside) mouseEntered();
+		if(!inside && mouseInside) mouseLeft();
+		mouseInside = inside;
+		if(mouseInside) mouseMovedInside(x, y);
+	}
+	
+	public boolean isMouseInside() {
+		return mouseInside;
 	}
 }

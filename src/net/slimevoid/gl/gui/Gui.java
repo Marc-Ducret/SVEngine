@@ -47,4 +47,16 @@ public class Gui {
 		for(Component comp : comps) comp.reset();
 		for(Component comp : comps) comp.solve();
 	}
+	
+	public void mouseMoved(int x, int y) {
+		for(Component comp : comps) comp.mouseMoved(x, y);
+	}
+	
+	public void mouseButtonChanged(int button, int action) {
+		for(Component comp : comps) if(comp.isMouseInside()) comp.mouseButtonChanged(button, action);
+	}
+	
+	public void keyChanged(int keycode, int action) {
+		for(Component comp : comps) comp.keyChanged(keycode, action);
+	}
 }

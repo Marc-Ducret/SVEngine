@@ -20,8 +20,19 @@ public class Rectangle {
 		return this;
 	}
 	
+	public Rectangle setColor(int col) {
+		return setColor(((col >> 16) & 0xFF) / (float) 0xFF, 
+						((col >> 8 ) & 0xFF) / (float) 0xFF,
+						((col >> 0 ) & 0xFF) / (float) 0xFF);
+	}
+	
 	public Rectangle setColor(float r, float g, float b) {
 		color.set(r, g, b);
+		return this;
+	}
+	
+	public Rectangle setTexture(String texture) {
+		this.texture = texture;
 		return this;
 	}
 	
@@ -30,7 +41,7 @@ public class Rectangle {
 		pool = this;
 	}
 	
-	public static Rectangle poolRectangle(int x, int y, int w, int h, String texture) { //TODO test String allocation cost
+	public static Rectangle poolRectangle(int x, int y, int w, int h) {
 		Rectangle r;
 		if(pool != null) {
 			r = pool;
@@ -40,7 +51,7 @@ public class Rectangle {
 		r.y = y;
 		r.w = w;
 		r.h = h;
-		r.texture = texture;
+		r.texture = "empty";
 		r.texX = 0;
 		r.texY = 0;
 		r.texW = w;

@@ -19,8 +19,10 @@ import static org.lwjgl.glfw.GLFW.glfwGetWindowSize;
 import static org.lwjgl.glfw.GLFW.glfwInit;
 import static org.lwjgl.glfw.GLFW.glfwMakeContextCurrent;
 import static org.lwjgl.glfw.GLFW.glfwPollEvents;
+import static org.lwjgl.glfw.GLFW.glfwSetCursorPosCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetErrorCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
+import static org.lwjgl.glfw.GLFW.glfwSetMouseButtonCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowPos;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose;
 import static org.lwjgl.glfw.GLFW.glfwShowWindow;
@@ -146,8 +148,17 @@ public class GLInterface {
 				glfwSetWindowShouldClose(window, true); //TODO keyboard / mouse managment
 			if ( key == GLFW_KEY_F5 && action == GLFW_RELEASE )
 				shaderManager.unloadShaders();
+			if(currentGui != null) currentGui.keyChanged(key, action);
 		});
-
+		
+		glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
+			if(currentGui != null) currentGui.mouseButtonChanged(button, action);
+		});
+		
+		glfwSetCursorPosCallback(window, (window, x, y) -> {
+			if(currentGui != null) currentGui.mouseMoved((int) x, windowHeight - (int) y);
+		});
+		
 		try ( MemoryStack stack = stackPush() ) {
 			IntBuffer pWidth = stack.mallocInt(1);
 			IntBuffer pHeight = stack.mallocInt(1);
@@ -161,7 +172,7 @@ public class GLInterface {
 		}
 
 		glfwMakeContextCurrent(window);
-		glfwSwapInterval(1); //TODO better solution mb and findout gliches when high fps
+		glfwSwapInterval(1); //TODO better solution mb and find out gliches when high fps
 		glfwShowWindow(window);
 		
 		GL.createCapabilities();
@@ -300,7 +311,8 @@ public class GLInterface {
 		String texture = builder.append("#font_").append(font).append('_').append(size).toString();
 		for(int i = 0; i < txt.length(); i ++) {
 			char c = txt.charAt(i);
-			Rectangle r = Rectangle.poolRectangle(x + (size-4)*i, y, size, size, texture); //TODO -3??
+			Rectangle r = Rectangle.poolRectangle(x + (size-4)*i, y, size, size); //TODO -3??
+			r.setTexture(texture);
 			r.setTextureOffset((c%16)*16, 256 - 16 -(c/16)*16-3); //TODO -3??
 			r.setColor(0, 0, 0);
 			addRectangle(r);
