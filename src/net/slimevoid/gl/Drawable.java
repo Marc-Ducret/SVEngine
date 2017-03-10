@@ -21,8 +21,10 @@ public class Drawable {
 	}
 	
 	public void draw(ShaderProgram program, float interpolation, Mat4 modelMat) {
-		if(interpolation == 0) modelMat.set(prevMat);
-		else modelMat.set(prevMat).mul((1 - interpolation) / interpolation).add(mat).mul(interpolation);
+		synchronized(this.mat) {
+			if(interpolation == 0) modelMat.set(prevMat);
+			else modelMat.set(prevMat).mul((1 - interpolation) / interpolation).add(mat).mul(interpolation);
+		}
 		program.setUniformVec3("primColor", model.colPrim);
 		program.setUniformVec3("altColor", model.colAlt);
 		program.setMat4("modelMat", modelMat);
@@ -32,7 +34,9 @@ public class Drawable {
 	}
 	
 	public void updateMat(Mat4 mat) {
-		prevMat.set(this.mat);
-		this.mat.set(mat);
+		synchronized(this.mat) {
+			prevMat.set(this.mat);
+			this.mat.set(mat);
+		}
 	}
 }

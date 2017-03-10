@@ -22,7 +22,7 @@ public class EngineTest {
 		GLInterface.addDrawable(object);
 		
 		Gui g = new Gui();
-		Button b = new Button("Affaglepe", () -> {System.out.println("Hey!"); ct += 10;});
+		Button b = new Button("Press!", () -> {run = !run;});
 		b.constrain(Component.S, null, Component.N, -75);
 		b.constrain(Component.W, null, Component.W, 25);
 		b.setSize(150, 40);
@@ -37,9 +37,10 @@ public class EngineTest {
 		System.exit(0);
 	}
 	
+	static boolean run = false;
 	static int ct = 0;
 	private static void tick() {
-		ct ++;
+		if(run) ct +=10;
 		Camera cam = GLInterface.getCamera();
 		synchronized(cam) {
 			cam.resetPos();

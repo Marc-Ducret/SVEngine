@@ -26,6 +26,10 @@ public class Rectangle {
 		return this;
 	}
 	
+	public void offset(float x, float y) {
+		this.x += x; this.y += y;
+	}
+	
 	public Rectangle setColor(int col) {
 		return setColor(((col >> 16) & 0xFF) / (float) 0xFF, 
 						((col >> 8 ) & 0xFF) / (float) 0xFF,

@@ -176,7 +176,7 @@ public class GLInterface {
 		}
 
 		glfwMakeContextCurrent(window);
-		glfwSwapInterval(1); //TODO better solution mb and find out gliches when high fps
+		glfwSwapInterval(1);
 		glfwShowWindow(window);
 		
 		GL.createCapabilities();
@@ -254,7 +254,6 @@ public class GLInterface {
 		clearRectangles();
 		currentGui.draw();
 		addText("FPS: "+fps+"\nTPS: "+tps, "consolas", 14, windowWidth - 80, windowHeight-16);
-		addText("test :)", "consolas", 14, 0, 0);
 		for(Rectangle r = rectangles; r != null; r = r.next) {
 			modelMat.setTranslate(r.x, r.y, 0);
 			modelMat.scale(r.w, r.h, 1);
@@ -315,6 +314,14 @@ public class GLInterface {
 	}
 	
 	public static void addText(String txt, String font, int size, int x, int y, int color) {
+		addText(txt, font, size, x, y, color, false);
+	}
+	
+	public static void addTextCenter(String txt, String font, int size, int x, int y, int color) {
+		addText(txt, font, size, x, y, color, true);
+	}
+	
+	private static void addText(String txt, String font, int size, int x, int y, int color, boolean centered) {
 		builder.setLength(0);
 		String texture = builder.append("#font_").append(font).append('_').append(size).toString();
 		TextureFont tf = (TextureFont) textureManager.getTexture(texture);
@@ -339,6 +346,13 @@ public class GLInterface {
 				r.setTextureSize((quadBuf.s1() - quadBuf.s0()) * 256, (quadBuf.t1() - quadBuf.t0()) * 256);
 				r.setColor(color);
 				addRectangle(r);
+			}
+			Rectangle r = rectangles;
+			if(centered) for(int i = 0; i < txt.length(); i ++) {
+				char c = txt.charAt(i);
+				if ( c == '\n' || c < 32 || 128 <= c ) continue;
+				r.offset(-(xBuf.get(0) - x) / 2, -(-yBuf.get(0) + size - y) / 2);
+				r = r.next;
 			}
 		}
 	}

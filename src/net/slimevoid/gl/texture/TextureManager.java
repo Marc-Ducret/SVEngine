@@ -1,6 +1,5 @@
 package net.slimevoid.gl.texture;
 
-import static org.lwjgl.opengl.GL11.GL_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_LINEAR;
 import static org.lwjgl.opengl.GL11.GL_REPEAT;
 import static org.lwjgl.opengl.GL11.GL_RGBA;

@@ -4,27 +4,47 @@ import static java.lang.Math.cos;
 import static java.lang.Math.sin;
 import static java.lang.Math.tan;
 
-import net.slimevoid.lang.Stack;
-
 public class Mat4 {
 	
-	private static final Mat4 TMP_MAT = new Mat4();
+	private static PooledMat4 pool;
+	
+	private static class PooledMat4 extends Mat4 {
+		private PooledMat4 next;
+		
+		public void free() {
+			synchronized(Mat4.class) {
+				next = pool;
+				pool = this;
+			}
+		}
+	}
+	
+	public static PooledMat4 poolMat4() {
+		synchronized(Mat4.class) {
+			PooledMat4 mat;
+			if(pool != null) {
+				mat = pool;
+				pool = pool.next;
+			} else mat = new PooledMat4();
+			return mat;
+		}
+	}
 	
 	public float m[];
-	private Stack<Mat4> backupStack;
+//	private Stack<Mat4> backupStack;
 	
 	public Mat4() {
 		m = new float[16];
-		backupStack = new Stack<>();
+//		backupStack = new Stack<>();
 	}
 	
-	public void push() {
-		backupStack.push(this.copy()); //TODO rework to avoid allocation (pool of matrices??)
-	}
-	
-	public void pop() {
-		m = backupStack.pop().m;
-	}
+//	public void push() {
+//		backupStack.push(this.copy()); //TODO rework to avoid allocation (pool of matrices??)
+//	}
+//	
+//	public void pop() {
+//		m = backupStack.pop().m;
+//	}
 
 	public Mat4 loadIdentity() {
 		for(int y = 0; y < 4; y++) {
@@ -134,23 +154,38 @@ public class Mat4 {
 	}
 	
 	public Mat4 project(float aspect, float fov, float near, float far) {
-		return mul(TMP_MAT.setPerspectiveProjectection(aspect, fov, near, far));
+		PooledMat4 tmp = poolMat4();
+		mul(tmp.setPerspectiveProjectection(aspect, fov, near, far));
+		tmp.free();
+		return this;
 	}
 	
 	public Mat4 translate(float x, float y, float z) {
-		return mul(TMP_MAT.setTranslate(x, y, z));
+		PooledMat4 tmp = poolMat4();
+		mul(tmp.setTranslate(x, y, z));
+		tmp.free();
+		return this;
 	}
 	
 	public Mat4 translate(Vec3 v) {
-		return mul(TMP_MAT.setTranslate(v));
+		PooledMat4 tmp = poolMat4();
+		mul(tmp.setTranslate(v));
+		tmp.free();
+		return this;
 	}
 	
 	public Mat4 rotate(float angle, float axisX, float axisY, float axisZ) {
-		return mul(TMP_MAT.setRotate(angle, axisX, axisY, axisZ));
+		PooledMat4 tmp = poolMat4();
+		mul(tmp.setRotate(angle, axisX, axisY, axisZ));
+		tmp.free();
+		return this;
 	}
 	
 	public Mat4 rotate(float angle, Vec3 axis) {
-		return mul(TMP_MAT.setRotate(angle, axis));
+		PooledMat4 tmp = poolMat4();
+		mul(tmp.setRotate(angle, axis));
+		tmp.free();
+		return this;
 	}
 	
 	public Mat4 scale(float s) {
@@ -158,142 +193,149 @@ public class Mat4 {
 	}
 	
 	public Mat4 scale(float x, float y, float z) {
-		return mul(TMP_MAT.setScale(x, y, z));
+		
+		PooledMat4 tmp = poolMat4();
+		mul(tmp.setScale(x, y, z));
+		tmp.free();
+		return this;
 	}
 	
 	public Mat4 scale(Vec3 v) {
-		return mul(TMP_MAT.setScale(v));
+		PooledMat4 tmp = poolMat4();
+		mul(tmp.setScale(v));
+		tmp.free();
+		return this;
 	}
 	
-	public Mat4 inverse() { //TODO rework to not allocate
-	    float inv[], det;
-	    int i;
-	    inv = new float[4 * 4];
-	    
-	    inv[0] = m[5]  * m[10] * m[15] - 
-	             m[5]  * m[11] * m[14] - 
-	             m[9]  * m[6]  * m[15] + 
-	             m[9]  * m[7]  * m[14] +
-	             m[13] * m[6]  * m[11] - 
-	             m[13] * m[7]  * m[10];
-
-	    inv[4] = -m[4]  * m[10] * m[15] + 
-	              m[4]  * m[11] * m[14] + 
-	              m[8]  * m[6]  * m[15] - 
-	              m[8]  * m[7]  * m[14] - 
-	              m[12] * m[6]  * m[11] + 
-	              m[12] * m[7]  * m[10];
-
-	    inv[8] = m[4]  * m[9] * m[15] - 
-	             m[4]  * m[11] * m[13] - 
-	             m[8]  * m[5] * m[15] + 
-	             m[8]  * m[7] * m[13] + 
-	             m[12] * m[5] * m[11] - 
-	             m[12] * m[7] * m[9];
-
-	    inv[12] = -m[4]  * m[9] * m[14] + 
-	               m[4]  * m[10] * m[13] +
-	               m[8]  * m[5] * m[14] - 
-	               m[8]  * m[6] * m[13] - 
-	               m[12] * m[5] * m[10] + 
-	               m[12] * m[6] * m[9];
-
-	    inv[1] = -m[1]  * m[10] * m[15] + 
-	              m[1]  * m[11] * m[14] + 
-	              m[9]  * m[2] * m[15] - 
-	              m[9]  * m[3] * m[14] - 
-	              m[13] * m[2] * m[11] + 
-	              m[13] * m[3] * m[10];
-
-	    inv[5] = m[0]  * m[10] * m[15] - 
-	             m[0]  * m[11] * m[14] - 
-	             m[8]  * m[2] * m[15] + 
-	             m[8]  * m[3] * m[14] + 
-	             m[12] * m[2] * m[11] - 
-	             m[12] * m[3] * m[10];
-
-	    inv[9] = -m[0]  * m[9] * m[15] + 
-	              m[0]  * m[11] * m[13] + 
-	              m[8]  * m[1] * m[15] - 
-	              m[8]  * m[3] * m[13] - 
-	              m[12] * m[1] * m[11] + 
-	              m[12] * m[3] * m[9];
-
-	    inv[13] = m[0]  * m[9] * m[14] - 
-	              m[0]  * m[10] * m[13] - 
-	              m[8]  * m[1] * m[14] + 
-	              m[8]  * m[2] * m[13] + 
-	              m[12] * m[1] * m[10] - 
-	              m[12] * m[2] * m[9];
-
-	    inv[2] = m[1]  * m[6] * m[15] - 
-	             m[1]  * m[7] * m[14] - 
-	             m[5]  * m[2] * m[15] + 
-	             m[5]  * m[3] * m[14] + 
-	             m[13] * m[2] * m[7] - 
-	             m[13] * m[3] * m[6];
-
-	    inv[6] = -m[0]  * m[6] * m[15] + 
-	              m[0]  * m[7] * m[14] + 
-	              m[4]  * m[2] * m[15] - 
-	              m[4]  * m[3] * m[14] - 
-	              m[12] * m[2] * m[7] + 
-	              m[12] * m[3] * m[6];
-
-	    inv[10] = m[0]  * m[5] * m[15] - 
-	              m[0]  * m[7] * m[13] - 
-	              m[4]  * m[1] * m[15] + 
-	              m[4]  * m[3] * m[13] + 
-	              m[12] * m[1] * m[7] - 
-	              m[12] * m[3] * m[5];
-
-	    inv[14] = -m[0]  * m[5] * m[14] + 
-	               m[0]  * m[6] * m[13] + 
-	               m[4]  * m[1] * m[14] - 
-	               m[4]  * m[2] * m[13] - 
-	               m[12] * m[1] * m[6] + 
-	               m[12] * m[2] * m[5];
-
-	    inv[3] = -m[1] * m[6] * m[11] + 
-	              m[1] * m[7] * m[10] + 
-	              m[5] * m[2] * m[11] - 
-	              m[5] * m[3] * m[10] - 
-	              m[9] * m[2] * m[7] + 
-	              m[9] * m[3] * m[6];
-
-	    inv[7] = m[0] * m[6] * m[11] - 
-	             m[0] * m[7] * m[10] - 
-	             m[4] * m[2] * m[11] + 
-	             m[4] * m[3] * m[10] + 
-	             m[8] * m[2] * m[7] - 
-	             m[8] * m[3] * m[6];
-
-	    inv[11] = -m[0] * m[5] * m[11] + 
-	               m[0] * m[7] * m[9] + 
-	               m[4] * m[1] * m[11] - 
-	               m[4] * m[3] * m[9] - 
-	               m[8] * m[1] * m[7] + 
-	               m[8] * m[3] * m[5];
-
-	    inv[15] = m[0] * m[5] * m[10] - 
-	              m[0] * m[6] * m[9] - 
-	              m[4] * m[1] * m[10] + 
-	              m[4] * m[2] * m[9] + 
-	              m[8] * m[1] * m[6] - 
-	              m[8] * m[2] * m[5];
-
-	    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
-
-	    if (det == 0)
-	        return this;
-
-	    det = 1.0F / det;
-
-	    for (i = 0; i < 16; i++)
-	        m[i] = inv[i] * det;
-
-	    return this;
-	}
+//	public Mat4 inverse() { //TODO rework to not allocate
+//	    float inv[], det;
+//	    int i;
+//	    inv = new float[4 * 4];
+//	    
+//	    inv[0] = m[5]  * m[10] * m[15] - 
+//	             m[5]  * m[11] * m[14] - 
+//	             m[9]  * m[6]  * m[15] + 
+//	             m[9]  * m[7]  * m[14] +
+//	             m[13] * m[6]  * m[11] - 
+//	             m[13] * m[7]  * m[10];
+//
+//	    inv[4] = -m[4]  * m[10] * m[15] + 
+//	              m[4]  * m[11] * m[14] + 
+//	              m[8]  * m[6]  * m[15] - 
+//	              m[8]  * m[7]  * m[14] - 
+//	              m[12] * m[6]  * m[11] + 
+//	              m[12] * m[7]  * m[10];
+//
+//	    inv[8] = m[4]  * m[9] * m[15] - 
+//	             m[4]  * m[11] * m[13] - 
+//	             m[8]  * m[5] * m[15] + 
+//	             m[8]  * m[7] * m[13] + 
+//	             m[12] * m[5] * m[11] - 
+//	             m[12] * m[7] * m[9];
+//
+//	    inv[12] = -m[4]  * m[9] * m[14] + 
+//	               m[4]  * m[10] * m[13] +
+//	               m[8]  * m[5] * m[14] - 
+//	               m[8]  * m[6] * m[13] - 
+//	               m[12] * m[5] * m[10] + 
+//	               m[12] * m[6] * m[9];
+//
+//	    inv[1] = -m[1]  * m[10] * m[15] + 
+//	              m[1]  * m[11] * m[14] + 
+//	              m[9]  * m[2] * m[15] - 
+//	              m[9]  * m[3] * m[14] - 
+//	              m[13] * m[2] * m[11] + 
+//	              m[13] * m[3] * m[10];
+//
+//	    inv[5] = m[0]  * m[10] * m[15] - 
+//	             m[0]  * m[11] * m[14] - 
+//	             m[8]  * m[2] * m[15] + 
+//	             m[8]  * m[3] * m[14] + 
+//	             m[12] * m[2] * m[11] - 
+//	             m[12] * m[3] * m[10];
+//
+//	    inv[9] = -m[0]  * m[9] * m[15] + 
+//	              m[0]  * m[11] * m[13] + 
+//	              m[8]  * m[1] * m[15] - 
+//	              m[8]  * m[3] * m[13] - 
+//	              m[12] * m[1] * m[11] + 
+//	              m[12] * m[3] * m[9];
+//
+//	    inv[13] = m[0]  * m[9] * m[14] - 
+//	              m[0]  * m[10] * m[13] - 
+//	              m[8]  * m[1] * m[14] + 
+//	              m[8]  * m[2] * m[13] + 
+//	              m[12] * m[1] * m[10] - 
+//	              m[12] * m[2] * m[9];
+//
+//	    inv[2] = m[1]  * m[6] * m[15] - 
+//	             m[1]  * m[7] * m[14] - 
+//	             m[5]  * m[2] * m[15] + 
+//	             m[5]  * m[3] * m[14] + 
+//	             m[13] * m[2] * m[7] - 
+//	             m[13] * m[3] * m[6];
+//
+//	    inv[6] = -m[0]  * m[6] * m[15] + 
+//	              m[0]  * m[7] * m[14] + 
+//	              m[4]  * m[2] * m[15] - 
+//	              m[4]  * m[3] * m[14] - 
+//	              m[12] * m[2] * m[7] + 
+//	              m[12] * m[3] * m[6];
+//
+//	    inv[10] = m[0]  * m[5] * m[15] - 
+//	              m[0]  * m[7] * m[13] - 
+//	              m[4]  * m[1] * m[15] + 
+//	              m[4]  * m[3] * m[13] + 
+//	              m[12] * m[1] * m[7] - 
+//	              m[12] * m[3] * m[5];
+//
+//	    inv[14] = -m[0]  * m[5] * m[14] + 
+//	               m[0]  * m[6] * m[13] + 
+//	               m[4]  * m[1] * m[14] - 
+//	               m[4]  * m[2] * m[13] - 
+//	               m[12] * m[1] * m[6] + 
+//	               m[12] * m[2] * m[5];
+//
+//	    inv[3] = -m[1] * m[6] * m[11] + 
+//	              m[1] * m[7] * m[10] + 
+//	              m[5] * m[2] * m[11] - 
+//	              m[5] * m[3] * m[10] - 
+//	              m[9] * m[2] * m[7] + 
+//	              m[9] * m[3] * m[6];
+//
+//	    inv[7] = m[0] * m[6] * m[11] - 
+//	             m[0] * m[7] * m[10] - 
+//	             m[4] * m[2] * m[11] + 
+//	             m[4] * m[3] * m[10] + 
+//	             m[8] * m[2] * m[7] - 
+//	             m[8] * m[3] * m[6];
+//
+//	    inv[11] = -m[0] * m[5] * m[11] + 
+//	               m[0] * m[7] * m[9] + 
+//	               m[4] * m[1] * m[11] - 
+//	               m[4] * m[3] * m[9] - 
+//	               m[8] * m[1] * m[7] + 
+//	               m[8] * m[3] * m[5];
+//
+//	    inv[15] = m[0] * m[5] * m[10] - 
+//	              m[0] * m[6] * m[9] - 
+//	              m[4] * m[1] * m[10] + 
+//	              m[4] * m[2] * m[9] + 
+//	              m[8] * m[1] * m[6] - 
+//	              m[8] * m[2] * m[5];
+//
+//	    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+//
+//	    if (det == 0)
+//	        return this;
+//
+//	    det = 1.0F / det;
+//
+//	    for (i = 0; i < 16; i++)
+//	        m[i] = inv[i] * det;
+//
+//	    return this;
+//	}
 	
 	public Mat4 resetRotation() {
 		return setTranslate(m[3 * 4 + 0], m[3 * 4 + 1], m[3 * 4 + 2]);
@@ -329,6 +371,15 @@ public class Mat4 {
 		}
 		return sb.toString();
 	}
+
+	public boolean isIdentity() {
+		for(int y = 0; y < 4; y++) {
+			for(int x = 0; x < 4; x++) {
+				if (m[y * 4 + x] != (y == x ? 1 : 0)) return false;
+			}
+		}
+		return true;
+	}
 	
 //	public Transform asBulletTransform() {
 //        Transform trans = new Transform();
@@ -343,11 +394,11 @@ public class Mat4 {
 //        return trans;
 //    }
 
-	private Mat4 copy() {
-		Mat4 mat = new Mat4();
-		for(int i = 0; i < 16; i ++) {
-			mat.m[i] = this.m[i];
-		}
-		return mat;
-  	}
+//	private Mat4 copy() {
+//		Mat4 mat = new Mat4();
+//		for(int i = 0; i < 16; i ++) {
+//			mat.m[i] = this.m[i];
+//		}
+//		return mat;
+//  	}
 }
