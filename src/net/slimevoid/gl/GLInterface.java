@@ -76,6 +76,10 @@ import net.slimevoid.gl.texture.TextureFont;
 import net.slimevoid.gl.texture.TextureManager;
 import net.slimevoid.lang.math.Mat4;
 
+/**
+ * Rendering engine doing 3D and 2D work.</br>
+ * Supports around 1000 2D / 3D shapes to run optimally.
+ */
 public class GLInterface {
  
 	private static long window;
@@ -252,8 +256,8 @@ public class GLInterface {
 		glUseProgram(program.getId());
 		program.setMat4("viewMat", viewMat);
 		clearRectangles();
-		currentGui.draw();
 		addText("FPS: "+fps+"\nTPS: "+tps, "consolas", 14, windowWidth - 80, windowHeight-16);
+		currentGui.draw();
 		for(Rectangle r = rectangles; r != null; r = r.next) {
 			modelMat.setTranslate(r.x, r.y, 0);
 			modelMat.scale(r.w, r.h, 1);
@@ -277,6 +281,8 @@ public class GLInterface {
 		glfwDestroyWindow(window);
 		glfwTerminate();
 		glfwSetErrorCallback(null).free();
+		System.out.println("Should be dead now");//TODO rm
+		System.exit(0);
 	}
 	
 	private static float getInterpolation() {

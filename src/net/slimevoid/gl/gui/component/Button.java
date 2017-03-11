@@ -27,7 +27,7 @@ public class Button extends Component {
 		Rectangle back  = Rectangle.poolRectangle(getX(), getY(), getW(), d);
 		front.setColor(0x30a7e4);
 		back.setColor(0x1a597a);
-		GLInterface.addTextCenter(text, "arial", 18, getX() + getW() / 2, getY() + d + getH() / 2, 0xFFFFFF);
+		GLInterface.addTextCenter(text, "arial", getH() / 2, getX() + getW() / 2, getY() + d + getH() / 2, isMouseInside() ? 0xFFFFFF : 0xE0E0FF);
 		GLInterface.addRectangle(front);
 		GLInterface.addRectangle(back);
 	}

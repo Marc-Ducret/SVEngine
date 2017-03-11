@@ -23,8 +23,8 @@ public class EngineTest {
 		
 		Gui g = new Gui();
 		Button b = new Button("Press!", () -> {run = !run;});
-		b.constrain(Component.S, null, Component.N, -75);
-		b.constrain(Component.W, null, Component.W, 25);
+		b.constrain(Component.N, null, Component.N, -25);
+		b.constrain(Component.W, null, Component.W, 25 );
 		b.setSize(150, 40);
 		g.addComponent(b);
 		GLInterface.changeGui(g);
@@ -34,7 +34,6 @@ public class EngineTest {
 			GLInterface.provideTickInfo(start+TICK_LEN);
 			Thread.sleep(TICK_LEN/1000);
 		}
-		System.exit(0);
 	}
 	
 	static boolean run = false;
