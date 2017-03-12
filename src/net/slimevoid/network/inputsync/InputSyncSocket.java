@@ -4,17 +4,18 @@ import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-import net.slimevoid.probot.network.NetworkEngineClient;
-import net.slimevoid.probot.network.packet.Packet01Login;
-import net.slimevoid.probot.network.packet.Packet04PlayRequest;
+import net.slimevoid.gl.GLInterface;
+import net.slimevoid.network.inputsync.InputData.InputDataList;
 
 public class InputSyncSocket {
 
 	public static enum ClientType {A, B}
 	
-	private static enum PakID {INPUT, ACK};
+	private static final int PACKET_ID = 0x25;
 	
 	private static final int TIMEOUT = 200;
+	private static final int BUFFER_SIZE = 2048; //TODO config file ;)
+	private static final int PACKET_TIMEOUT = 500000;
 	
 	public final ClientType type;
 	private final String addr;
@@ -25,7 +26,17 @@ public class InputSyncSocket {
 	private PacketInterface sendPak;
 	private PacketInterface recePak;
 	
+	private InputDataList localList = new InputDataList();
+	private InputDataList distantList = new InputDataList();
+	private InputDataList toSend = new InputDataList();
+	
+	private int localAck = -1;
+	private int distantAck = -1;
+	
+	private boolean update = false;
+	
 	private boolean alive;
+	private long lastContact;
 	
 	public InputSyncSocket(String addr, int port, int localPort, ClientType type) {
 		this.addr = addr;
@@ -33,23 +44,23 @@ public class InputSyncSocket {
 		this.localPort = localPort;
 		this.type = type;
 		alive = false;
-		sendPak = new PacketInterface(1024);
-		recePak = new PacketInterface(1024);
+		sendPak = new PacketInterface(BUFFER_SIZE);
+		recePak = new PacketInterface(BUFFER_SIZE);
 	}
 	
 	public boolean connect(int tries) {
-		byte hello = 0x57, ok = -0x73;
+		int hello = 0x57, ok = 0xD3;
 		try {
 			sok = new DatagramSocket(localPort);
 			sok.setSoTimeout(TIMEOUT);
 			iaddr = InetAddress.getByName(addr);
-			byte msg = hello;
+			int msg = hello;
 			for(int i = 0; i < tries; i ++) {
 				try {
 					sendPak.write(msg);
 					sok.send(sendPak.preparePacket(iaddr, port));
 					sok.receive(recePak.preparePacket());
-					byte recMsg = recePak.read();
+					int recMsg = recePak.read();
 					if(recMsg == ok) {
 						for(int j = 0; j < tries; j ++) {
 							sendPak.write(ok);
@@ -69,33 +80,92 @@ public class InputSyncSocket {
 	
 	private void init() {
 		alive = true;
+		lastContact = GLInterface.getTimeMicro();
 		new Thread(() -> {
 			while(alive) {
 				try {
 					sok.receive(recePak.preparePacket());
-					System.out.println("read: "+recePak.read());
+					if(recePak.read() != PACKET_ID) continue;
+					synchronized(this) {
+						lastContact = GLInterface.getTimeMicro();
+						int ack = recePak.readInt();
+						assertSync(ack >= distantAck);
+						if(ack != distantAck) {
+							distantAck = ack;
+							cleenUpSendList();
+						}
+						int nb = recePak.read();
+						for(int i = 0; i < nb; i ++) {
+							InputData indata = InputData.read(recePak);
+							if(indata.getTickID() <= localAck) indata.free();
+							else {
+								assertSync(indata.getTickID() == localAck + 1);
+								distantList.append(indata);
+								localAck++;
+								update = true;
+							}
+						}
+					}
+					Thread.sleep(1);
+				} catch(Exception e) {}
+				if(GLInterface.getTimeMicro() - lastContact > PACKET_TIMEOUT) {
+					System.out.println("TIMEOUT!");//TODO rm
+					alive = false;
+				}
+			}
+		}).start();
+		new Thread(() -> {
+			while(alive) {
+				try {
+					if(update) {
+						update = false;
+						synchronized(this) {
+							sendPak.write(PACKET_ID);
+							sendPak.writeInt(localAck);
+							sendPak.write(toSend.lenght());
+							for(InputData el = toSend.top(); el != null; el = el.next)
+								el.write(sendPak);
+							sok.send(sendPak.preparePacket(iaddr, port));
+						}
+					}
+					Thread.sleep(1);
 				} catch(Exception e) {}
 			}
 		}).start();
-		try {
-			byte msg = (byte) (System.currentTimeMillis() % 0xFF);
-			sendPak.write(msg);
-			sok.send(sendPak.preparePacket(iaddr, port));
-			System.out.println("write: "+msg);
-		} catch(Exception e) {
-			System.out.println("SEND fail "+e);
-		}
 	}
 	
-	public static void main(String[] args) {
-		System.out.println("Fight!");//TODO rm
-		NetworkEngineClient net = new NetworkEngineClient();
-		if(!net.connect("89.156.241.115", 8004)) {
-			System.out.println("Connection unsuccessful :("); //TODO addr?
-			return;
-		}
-		net.sendAll(new Packet01Login(System.getProperty("user.name")+Integer.toHexString((int) (System.currentTimeMillis() % 0xFF))));
-		net.sendAll(new Packet04PlayRequest());
-		net.startUpdateThread();
+	private void assertSync(boolean assertion) {
+		if(!assertion) throw new RuntimeException("De-synchronized");;
+	}
+	
+	private synchronized void cleenUpSendList() {
+		while(!toSend.isEmpty() && toSend.top().getTickID() <= distantAck) toSend.pop().free();
+	}
+	
+	public synchronized void provideLocalInputData(InputData data) {
+		localList.append(data);
+		toSend.append(data.clone());
+		update = true;
+	}
+	
+	public synchronized boolean isInputDataReady() {
+		return !localList.isEmpty() && !distantList.isEmpty();
+	}
+	
+	public InputData getLocalInputData() {
+		return localList.top();
+	}
+	
+	public InputData getDistantInputData() {
+		return distantList.top();
+	}
+	
+	public synchronized void freeOldestData() {
+		localList.pop().free();
+		distantList.pop().free();
+	}
+	
+	public boolean isAlive() {
+		return alive;
 	}
 }

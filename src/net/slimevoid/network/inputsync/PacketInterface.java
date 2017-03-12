@@ -16,15 +16,31 @@ public class PacketInterface {
 		cursor = 0;
 	}
 	
-	public void write(byte b) throws IOException {
+	public void write(int b) throws IOException {
 		if(cursor >= buf.length) throw new IOException("Buffer overflow");
-		buf[cursor] = b;
+		buf[cursor] = (byte) b;
 		cursor ++;
 	}
 	
-	public byte read() throws IOException {
+	public int read() throws IOException {
 		if(cursor >= buf.length) throw new IOException("Buffer underflow");
-		return buf[cursor ++];
+		return buf[cursor ++] & 0xFF;
+	}
+	
+	public void writeInt(int i) throws IOException {
+		for(int j = 0; j < 4; j ++) {
+			write(i & 0xFF);
+			i >>= 8;
+		}
+	}
+	
+	public int readInt() throws IOException {
+		int i = 0;
+		for(int j = 0; j < 4; j ++) {
+			int r = (int) read();
+			i += (r << (j * 8));
+		}
+		return i;
 	}
 	
 	public void reset() {
