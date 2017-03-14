@@ -3,6 +3,7 @@ package net.slimevoid.network.inputsync;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Random;
 
 import net.slimevoid.gl.GLInterface;
 import net.slimevoid.network.inputsync.InputData.InputDataList;
@@ -15,7 +16,7 @@ public class InputSyncSocket {
 	
 	private static final int TIMEOUT = 200;
 	private static final int BUFFER_SIZE = 2048; //TODO config file ;)
-	private static final int PACKET_TIMEOUT = 500000;
+	private static final int PACKET_TIMEOUT = 2000000;
 	
 	public final ClientType type;
 	private final String addr;
@@ -34,6 +35,7 @@ public class InputSyncSocket {
 	private int distantAck = -1;
 	
 	private boolean update = false;
+	private long lastUpdate;
 	
 	private boolean alive;
 	private long lastContact;
@@ -81,33 +83,13 @@ public class InputSyncSocket {
 	private void init() {
 		alive = true;
 		lastContact = GLInterface.getTimeMicro();
+		lastUpdate = GLInterface.getTimeMicro();
 		new Thread(() -> {
 			while(alive) {
 				try {
-					sok.receive(recePak.preparePacket());
-					if(recePak.read() != PACKET_ID) continue;
-					synchronized(this) {
-						lastContact = GLInterface.getTimeMicro();
-						int ack = recePak.readInt();
-						assertSync(ack >= distantAck);
-						if(ack != distantAck) {
-							distantAck = ack;
-							cleenUpSendList();
-						}
-						int nb = recePak.read();
-						for(int i = 0; i < nb; i ++) {
-							InputData indata = InputData.read(recePak);
-							if(indata.getTickID() <= localAck) indata.free();
-							else {
-								assertSync(indata.getTickID() == localAck + 1);
-								distantList.append(indata);
-								localAck++;
-								update = true;
-							}
-						}
-					}
+					readPacket();
 					Thread.sleep(1);
-				} catch(Exception e) {}
+				} catch(IOException | InterruptedException e) {}
 				if(GLInterface.getTimeMicro() - lastContact > PACKET_TIMEOUT) {
 					System.out.println("TIMEOUT!");//TODO rm
 					alive = false;
@@ -117,21 +99,54 @@ public class InputSyncSocket {
 		new Thread(() -> {
 			while(alive) {
 				try {
-					if(update) {
-						update = false;
-						synchronized(this) {
-							sendPak.write(PACKET_ID);
-							sendPak.writeInt(localAck);
-							sendPak.write(toSend.lenght());
-							for(InputData el = toSend.top(); el != null; el = el.next)
-								el.write(sendPak);
-							sok.send(sendPak.preparePacket(iaddr, port));
-						}
-					}
+					writePacket();
 					Thread.sleep(1);
-				} catch(Exception e) {}
+				} catch(IOException | InterruptedException e) {}
 			}
 		}).start();
+	}
+	
+	private void writePacket() throws IOException {
+		if(update || GLInterface.getTimeMicro() - lastUpdate >= PACKET_TIMEOUT / 20) {
+			update = false;
+			lastUpdate = GLInterface.getTimeMicro();
+			synchronized(this) {
+				sendPak.write(PACKET_ID);
+				sendPak.writeInt(localAck);
+				sendPak.write(toSend.lenght());
+				if(!toSend.isEmpty())
+					for(InputData el = toSend.top(); el != null; el = el.next)
+						el.write(sendPak);
+				sok.send(sendPak.preparePacket(iaddr, port));
+			}
+		}
+	}
+
+	private void readPacket() throws IOException {
+		sok.receive(recePak.preparePacket());
+		if(recePak.read() != PACKET_ID) return;
+		synchronized(this) {
+			//TODO rm start
+//			if(new Random().nextFloat() <= .5F) return;
+			//TODO rm end
+			lastContact = GLInterface.getTimeMicro();
+			int ack = recePak.readInt();
+			if(ack > distantAck) {
+				distantAck = ack;
+				cleenUpSendList();
+			}
+			int nb = recePak.read();
+			for(int i = 0; i < nb; i ++) {
+				InputData indata = InputData.read(recePak);
+				if(indata.getTickID() <= localAck) indata.free();
+				else {
+					assertSync(indata.getTickID() == localAck + 1);
+					distantList.append(indata);
+					localAck++;
+					update = true;
+				}
+			}
+		}
 	}
 	
 	private void assertSync(boolean assertion) {

@@ -285,7 +285,7 @@ public class GLInterface {
 		System.exit(0);
 	}
 	
-	private static float getInterpolation() {
+	public static float getInterpolation() {
 		long time = getTimeMicro();
 		if(time < lastTick) return 0;
 		if(time > nextTick) return 1;
