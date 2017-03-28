@@ -16,8 +16,6 @@ import java.nio.file.Paths;
 
 import org.lwjgl.BufferUtils;
 
-import sun.nio.ch.IOUtil;
-
 public class Utils {
 	
 	/**
@@ -63,7 +61,7 @@ public class Utils {
 				while ( fc.read(buffer) != -1 ) ;
 			}
 		} else {
-			InputStream source = IOUtil.class.getResourceAsStream(resource);
+			InputStream source = Utils.class.getResourceAsStream(resource);
 			if(source == null) throw new IOException("No such ressource "+resource);
 			try (
 				ReadableByteChannel rbc = Channels.newChannel(source)
